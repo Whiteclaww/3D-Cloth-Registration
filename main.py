@@ -25,15 +25,13 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     
     # Viewpoint angle on XY plan, optimal are: 100: front, 180: side
     ANGLE = 100
-    utils.plot_alignment(garmentVertices, smplVertices, ANGLE)
+    #utils.plot_alignment(garmentVertices, smplVertices, ANGLE)
     
     # Fill the Y and Z lists
     logging.info("Attempting to fill the lists Y and Z before rotation of OBJ (always at a 90 degree angle)")
     garmentY:list = []
     garmentZ:list = []
     (garmentY, garmentZ) = utils.fillYZ(garmentVertices)
-    
-    print(type(garmentVertices))
     
     # Rotate the Y and Z lists
     logging.info("Attempting to rotate the garment")
@@ -43,16 +41,14 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     logging.info("Attempting to replace the Y and Z elements in the garment list")
     garmentVertices = utils.replace(garmentVertices, garmentY, garmentZ)
     
-    utils.plot_alignment(garmentVertices, smplVertices, ANGLE)
+    #utils.plot_alignment(garmentVertices, smplVertices, ANGLE)
 
     # Non-rigid ICP
-    #logging.info("Attempting to apply a Non-Rigid ICP from garment to SMPL")
-    #aligned_garment = non_rigid_icp(garmentVertices, smplVertices)
-    #logging.info("Success applying Non-Rigid ICP")
+    logging.info("Attempting to apply a Non-Rigid ICP from garment to SMPL")
+    aligned_garment = non_rigid_icp(garmentVertices, smplVertices)
+    logging.info("Success applying Non-Rigid ICP")
     
-    #print(type(aligned_garment))
-    
-    #utils.plot_alignment(aligned_garment, smplVertices, ANGLE)
+    utils.plot_alignment(aligned_garment, smplVertices, ANGLE)
 
     # Save aligned garment
     logging.info("Attempting to save the aligned garment in OBJ")
