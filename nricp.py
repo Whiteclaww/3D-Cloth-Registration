@@ -292,7 +292,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             j += 1  # track the iterations for this alpha/landmark weight
             logging.info(" | *** Iterate until convergence ***")
             # find nearest neighbour and the normals
-            closest_points, triangle_indices = closest_points_on_target(current_deformed_points)
+            closest_points, triangle_indices = closest_points_on_target(current_deformed_points)   # ERROR: FindClosestPoint argument 1: expected a sequence of 3 values, got -1 values
 
             # ---- WEIGHTS ----
             # 1.  Edges
@@ -347,16 +347,24 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
                 # Append the solution to the list of solutions
                 solved.append(sol)
                 
-            # Combine the solutions into a single array
-            logging.info(" |  | Solved Ax=B")
+            solved = csr_matrix(solved).tocsr().T
+            tolerance = 1e-07  # Adjust as needed
+            
+            maybeB = matrixA.dot(solved)
+            
+            abs_diff = np.abs(toarray_without_loss(maybeB) - toarray_without_loss(matrixB))
+            if np.all(abs_diff < tolerance).all() and maybeB.shape == matrixB.shape:
+                logging.info(" |  | Verified that A * x = B")
+            else:
+                logging.error(" |  | Error when verifying A * x = B")
 
             # deform template
             previous_deformed_points = current_deformed_points
-            current_deformed_points = data_sparse_matrix.dot(csr_matrix(solved).tocsr().T)
+            current_deformed_points = data_sparse_matrix.dot(solved)
             deformation_per_step = current_deformed_points - previous_deformed_points
             logging.info(" |  | Deformed template")
 
-            error_delta = np.linalg.norm(toarray_without_loss(previousX.T) - solved, ord="fro")
+            error_delta = np.linalg.norm(toarray_without_loss(previousX) - solved, ord="fro")
             stop_criterion = error_delta / np.sqrt(np.size(previousX))
 
             previousX = solved
