@@ -436,10 +436,10 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             matrixA = sp.vstack(to_stack_A).tocsr()
             matrixB = sp.vstack(to_stack_B).tocsr()
             
-            matrixB_transposed = matrixB.transpose()#
+            matrixB_transposed = matrixB.transpose()
             
             a = matrixA
-            b = matrixB_transposed
+            b = matrixB
             #a:np.ndarray = toarray_without_loss(matrixA)
             #b = toarray_without_loss(matrixB_transposed)
             
@@ -456,7 +456,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
                 solution = lsmr(a, toarray(b[i, :]))
                 solved.append(solution)'''
             
-            residuals = []
+            '''residuals = []
             for i in range(b.shape[0]):
                 # Obtain the solution
                 solution = lsmr(a, toarray(b[i, :]))
@@ -474,7 +474,25 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             if all_correct:
                 print("All solutions are correct.")
             else:
-                print("Some solutions are not accurate.")
+                print("Some solutions are not accurate.")'''
+            
+            #solved = lsmr(a, b.T)
+            
+            solution = []
+            for i in range(b.shape[1]):
+                # Extract the i-th row of b
+                b_row = b[:, i].reshape(1, -1)
+                qwertyuiop = toarray_without_loss(b_row)
+                
+                # Solve the linear system for the i-th right-hand side vector
+                (sol, _, _, _, _, _, _, _) = lsmr(a, qwertyuiop)
+                
+                # Append the solution to the list of solutions
+                solution.append(sol)
+                
+            # Combine the solutions into a single array
+            #solved = np.hstack(solution)
+            solved = solution
             
             #SCALE = 1000
             #solved = custom_solver(a, b)
@@ -493,7 +511,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
 
             # deform template
             previous_deformed_points = current_deformed_points
-            current_deformed_points = data_sparse_matrix.dot(solved)
+            current_deformed_points = data_sparse_matrix.T.dot(solved)
             deformation_per_step = current_deformed_points - previous_deformed_points
             logging.info(" |  | Deformed template")
 
