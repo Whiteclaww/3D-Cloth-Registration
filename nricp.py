@@ -1,8 +1,7 @@
 from imports import *
-from sksparse.cholmod import cholesky_AAt
-import scipy
-from scipy.sparse import csr_matrix
 from vtk.util.numpy_support import numpy_to_vtk
+from scipy.sparse.linalg import lsmr
+from scipy.sparse import csr_matrix
 
 @contextmanager
 def stdout_redirected(to=os.devnull):
@@ -119,31 +118,6 @@ def numpyToVTK(data, multi_component = False, type = 'float'):
     img.SetDimensions(shape[0], shape[1], shape[2])
     return img
 
-def custom_solver(a, b, max_iter = 1000, threshold = 1e-6):
-    """
-    Solve the linear system Ax = b using the conjugate gradient method.
-    """
-    # Initialize x
-    x = np.zeros((a.shape[1], b.shape[1]))
-    residual = b
-    initial_residual_norm_squared = np.dot(residual.T, residual)
-
-    # Iterate for a maximum number of iterations
-    for _ in range(max_iter):
-        Ap = np.dot(a.T, residual.T)
-        alpha = np.dot(residual.T, Ap) / np.dot(Ap.T, Ap)
-        x += alpha * residual
-        residual -= alpha * np.dot(a, Ap)
-        new_residual_norm_squared = np.linalg.norm(residual)**2
-
-        # Check for convergence
-        if np.sqrt(new_residual_norm_squared) < threshold:
-            return x
-        beta = new_residual_norm_squared / initial_residual_norm_squared
-        residual += beta * residual
-        initial_residual_norm_squared = new_residual_norm_squared
-    return x
-
 def node_arc_incidence_matrix(source):
     unique_edge_pairs = source.unique_edge_indices()
     m = unique_edge_pairs.shape[0]
@@ -154,42 +128,10 @@ def node_arc_incidence_matrix(source):
     data = np.hstack((-1 * np.ones(m), np.ones(m)))
     return sp.coo_matrix((data, (row, col))), unique_edge_pairs
 
-
-def validate_weights(label, weights, n_points, n_iterations=None, verbose=False):
-    if n_iterations is not None and len(weights) != n_iterations:
-        raise ValueError(
-            "Invalid {label}: - due to other weights there are "
-            "{n_iterations} iterations but {n_weights} {label} "
-            "were provided".format(
-                label=label, n_iterations=n_iterations, n_weights=len(weights)
-            )
-        )
-    invalid = []
-    for i, weight in enumerate(weights):
-        is_per_vertex = isinstance(weight, np.ndarray)
-        if is_per_vertex and weight.shape != (n_points,):
-            invalid.append("({}): {}".format(i, weight.shape[0]))
-
-    if verbose and len(weights) >= 1:
-        is_per_vertex = isinstance(weights[0], np.ndarray)
-        if is_per_vertex:
-            print("Using per-vertex {label}".format(label=label))
-        else:
-            print("Using global {label}".format(label=label))
-
-    if len(invalid) != 0:
-        raise ValueError(
-            "Invalid {label}: expected shape ({n_points},) "
-            "got: {invalid_cases}".format(
-                label=label,
-                n_points=n_points,
-                invalid_cases="{}".format(", ".join(invalid)),
-            )
-        )
-
 def non_rigid_icp(source, target, eps = 1e-3, iterations = 10, generate_instances = True):
     # call the generator version of NICP, always returning a generator
     generator = non_rigid_icp_generator(source, target, threshold = eps, iterations = iterations)
+    
     # the handler decides whether the user get's details and each iteration returned, or just the final result.
     return non_rigid_icp_generator_handler(generator, generate_instances)
 
@@ -218,28 +160,6 @@ def transform(source:np.ndarray, target:np.ndarray):
     
     return(trimesh_source, trimesh_target, translation)
 
-from scipy.sparse import csr_matrix
-from scipy.interpolate import interp1d
-
-# Example non-linear function
-def nonlinear_function(x):
-    return np.sin(x)
-
-num_intervals = 10
-intervals = np.linspace(0, 2*np.pi, num_intervals)
-
-# Divide the domain into intervals
-num_intervals = 10
-intervals = np.linspace(0, 2*np.pi, num_intervals)
-
-# Approximate the non-linear function within each interval
-def linear_approximation(x):
-    return np.sin(intervals[np.searchsorted(intervals, x)])
-
-# Construct the piecewise linear function
-def piecewise_linear_function(x):
-    return nonlinear_function(x)
-
 def toarray_without_loss(sparse_matrix):
     # Get the shape of the sparse matrix
     m, n = sparse_matrix.shape
@@ -255,22 +175,6 @@ def toarray_without_loss(sparse_matrix):
         dense_array[row_indices[i], col_indices[i]] = data[i]
     
     return dense_array
-
-def solve_with_dense(matrixA, matrixB):
-    # Convert sparse matrices to dense arrays without data loss
-    dense_A = toarray_without_loss(matrixA)
-    dense_B = toarray_without_loss(matrixB)
-
-    # Check if matrices have the same number of rows
-    if dense_A.shape[0] != dense_B.shape[0]:
-        raise ValueError("Matrices must have the same number of rows for solving.")
-
-    # Perform the solving algorithm using dense arrays
-    # For example, let's use NumPy's linear algebra solver for demonstration
-    # You can replace this with any solving algorithm that works with dense arrays
-    solution = np.linalg.lstsq(dense_A, dense_B, rcond=None)[0]
-
-    return solution
 
 def toarray(matrix):
     if matrix.shape[0] != 1:
@@ -365,7 +269,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
     log_counter += 1
     logging.info(f"|-{log_counter}: Parsing matrix")
 
-    for i, (alpha, gamma) in enumerate(zip(stiffness_weights, data_weights), 1):
+    for i, (alpha, _) in enumerate(zip(stiffness_weights, data_weights), 1):
         logging.info(f"*** Iteration {i} ***")
 
         alpha_is_per_vertex = isinstance(alpha, np.ndarray)
@@ -417,10 +321,6 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             prop_omitted_edges = (n - mask_edges.sum() * 1.0) / n
             logging.info(" |  | Divided values")
 
-            if gamma is not None:
-                mask_all = mask_all * gamma
-                logging.info(" |  | Gamma is not null")
-
             # Build the sparse diagonal weight matrix
             sparse_diagonal_weight_matrix = sp.diags(mask_all.astype(np.float64)[None, :], [0])
             logging.info(" |  | Building sparse diagonal weight matrix...")
@@ -436,86 +336,27 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             matrixA = sp.vstack(to_stack_A).tocsr()
             matrixB = sp.vstack(to_stack_B).tocsr()
             
-            matrixB_transposed = matrixB.transpose()
-            
-            a = matrixA
-            b = matrixB
-            #a:np.ndarray = toarray_without_loss(matrixA)
-            #b = toarray_without_loss(matrixB_transposed)
-            
-            
-            #from scipy.sparse.linalg import lsqr
-            # Solve the linear system
-            #solved = spsolve(toarray_without_loss(matrixA), toarray_without_loss(matrixB_transposed))
-            #solved = scipy_spsolve(toarray_without_loss(matrixA), toarray_without_loss(matrixB_transposed))
-            from scipy.sparse.linalg import lsmr
-
-            # Iterate over each column of b
-            '''solved = []
-            for i in range(b.shape[0]):
-                solution = lsmr(a, toarray(b[i, :]))
-                solved.append(solution)'''
-            
-            '''residuals = []
-            for i in range(b.shape[0]):
-                # Obtain the solution
-                solution = lsmr(a, toarray(b[i, :]))
-                
-                # Calculate the residual using the original equation
-                residual = np.linalg.norm(a.dot(solution) - toarray(b[i, :]))
-                
-                # Append the residual to the list
-                residuals.append(residual)
-
-            # Check if all residuals are close to zero
-            tolerance = 1e-6  # Define a tolerance level
-            all_correct = all(residual < tolerance for residual in residuals)
-
-            if all_correct:
-                print("All solutions are correct.")
-            else:
-                print("Some solutions are not accurate.")'''
-            
-            #solved = lsmr(a, b.T)
-            
-            solution = []
-            for i in range(b.shape[1]):
+            solved = []
+            for i in range(matrixB.shape[1]):
                 # Extract the i-th row of b
-                b_row = b[:, i].reshape(1, -1)
-                qwertyuiop = toarray_without_loss(b_row)
+                b_row = matrixB[:, i].reshape(1, -1)
                 
                 # Solve the linear system for the i-th right-hand side vector
-                (sol, _, _, _, _, _, _, _) = lsmr(a, qwertyuiop)
+                (sol, _, _, _, _, _, _, _) = lsmr(matrixA, toarray_without_loss(b_row))
                 
                 # Append the solution to the list of solutions
-                solution.append(sol)
+                solved.append(sol)
                 
             # Combine the solutions into a single array
-            #solved = np.hstack(solution)
-            solved = solution
-            
-            #SCALE = 1000
-            #solved = custom_solver(a, b)
-            #solved = np.linalg.solve(toarray_without_loss(a), toarray_without_loss(b))
-            #A_pinv = np.linalg.pinv(toarray_without_loss(a))
-            #solved = np.dot(A_pinv, toarray_without_loss(b))
-            
-            #P, L, U = scipy.linalg.lu(atest)
-            #print("LU")
-            #y = scipy.linalg.solve_triangular(L, np.dot(P, btest), lower=True)
-            #print("triangles")
-
-            # Solve for x: Ux = y
-            #solved = scipy.linalg.solve_triangular(U, y, lower=False)
-            logging.info(" |  | Applied scipy_spsolve")
+            logging.info(" |  | Solved Ax=B")
 
             # deform template
             previous_deformed_points = current_deformed_points
-            current_deformed_points = data_sparse_matrix.T.dot(solved)
+            current_deformed_points = data_sparse_matrix.dot(csr_matrix(solved).tocsr().T)
             deformation_per_step = current_deformed_points - previous_deformed_points
             logging.info(" |  | Deformed template")
 
-            error_delta = np.linalg.norm(previousX - solved, ord="fro")
+            error_delta = np.linalg.norm(toarray_without_loss(previousX.T) - solved, ord="fro")
             stop_criterion = error_delta / np.sqrt(np.size(previousX))
 
             previousX = solved
