@@ -1,7 +1,6 @@
 from menpo.transform.homogeneous.affine import DiscreteAffine
 from menpo.transform.homogeneous.similarity import Similarity
 from menpo.shape import PointCloud
-from menpo.shape.adjacency import mask_adjacency_array, reindex_adjacency_array
 import numpy as np
 import vtk
 from warnings import warn
@@ -202,7 +201,7 @@ class TriMesh(PointCloud):
             raise ValueError("Normals are only valid for 3D meshes")
         return compute_face_normals(self.points, self.trilist)
 
-    def boundary_tri_index(self):
+    def boundary_tri_index(self) -> np.ndarray:
         r"""Boolean index into triangles that are at the edge of the TriMesh.
         The boundary vertices can be visualized as follows
         ::
@@ -293,7 +292,7 @@ class VTKClosestPointLocator(object):
         self._sub_id = vtk.mutable(0)
         self._distance = vtk.mutable(0.0)
 
-    def __call__(self, points):
+    def __call__(self, points:np.ndarray):
         r"""Return the nearest points on the mesh and the index of the nearest
         triangle for a collection of points. This is a lower-level algorithm
         and operates directly on a numpy array rather than an pointcloud.

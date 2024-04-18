@@ -200,7 +200,7 @@ def toarray(matrix):
 
 
 
-def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:float = 1e-3, iterations:int = 10):
+def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:float, iterations:int):
     """
     Deforms the source trimesh to align with to optimally the target.
     """
@@ -222,8 +222,8 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
     n_dims = trimesh_source.n_dims
     # Homogeneous dimension (1 extra for translation effects)
     h_dims = n_dims + 1
-    points, trilist = trimesh_source.points, trimesh_source.trilist
-    n = points.shape[0]  # record number of points
+    current_deformed_points, trilist = trimesh_source.points, trimesh_source.trilist
+    n = current_deformed_points.shape[0]  # record number of points
 
     edge_triangles = trimesh_source.boundary_tri_index()
     log_counter += 1
@@ -256,11 +256,10 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
 
     # init transformation
     previousX = np.tile(np.zeros((n_dims, h_dims)), n).T
-    current_deformed_points = points
     log_counter += 1
     logging.info(f"|-{log_counter}: Initialized transformation")
 
-    stiffness_weights = [0] * iterations
+    stiffness_weights = [5] * iterations
     log_counter += 1
     logging.info(f"|-{log_counter}: Created stiffness weights")
 
@@ -336,13 +335,10 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             data = np.hstack((current_deformed_points.ravel(), array_of_ones))
             data_sparse_matrix = sp.coo_matrix((data, (row, col)))
 
-            to_stack_A = [alpha_times_incidence_heavier_matrix, sparse_diagonal_weight_matrix.dot(data_sparse_matrix)]
-            to_stack_B = [np.zeros((alpha_times_incidence_heavier_matrix.shape[0], n_dims)),
-                          closest_points * mask_all[:, None]]  # nullify nearest points by combined_weights
+            matrixA = sp.vstack([alpha_times_incidence_heavier_matrix, sparse_diagonal_weight_matrix.dot(data_sparse_matrix)]).tocsr()
+            matrixB = sp.vstack([np.zeros((alpha_times_incidence_heavier_matrix.shape[0], n_dims)),
+                          closest_points * mask_all[:, None]]).tocsr()  # nullify nearest points by combined_weights
             logging.info(" |  | Building done!")
-
-            matrixA = sp.vstack(to_stack_A).tocsr()
-            matrixB = sp.vstack(to_stack_B).tocsr()
             
             solved = []
             for count in range(matrixB.shape[1]):
@@ -356,15 +352,14 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
                 solved.append(sol)
                 
             solved = sp.csr_matrix(solved).tocsr().T
-            tolerance = 1e-07  # Adjust as needed
             
             maybeB = matrixA.dot(solved)
             
             abs_diff = np.abs(toarray_without_loss(maybeB) - toarray_without_loss(matrixB))
-            if np.all(abs_diff < tolerance).all() and maybeB.shape == matrixB.shape:
+            if np.all(abs_diff < 1e-07).all() and maybeB.shape == matrixB.shape:
                 logging.info(" |  | Verified that A * x = B")
             else:
-                logging.error(" |  | Error when verifying A * x = B")
+                logging.error("|  | Error when verifying A * x = B")
 
             # deform template
             previous_deformed_points = current_deformed_points
@@ -376,9 +371,6 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             stop_criterion = error_delta / np.sqrt(np.size(previousX))
 
             previousX = solved
-
-            current_instance = trimesh_source.copy()
-            current_instance.points = current_deformed_points.copy()
             logging.info(f" |  | Finished iteration {j}")
             
             # track the progress of the algorithm per-iteration
