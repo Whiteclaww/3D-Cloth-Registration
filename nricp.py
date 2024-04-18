@@ -1,7 +1,15 @@
 from imports import *
-from vtk.util.numpy_support import numpy_to_vtk
+
+from contextlib import contextmanager
+from io import UnsupportedOperation
+import logging
+import scipy.sparse as sp
 from scipy.sparse.linalg import lsmr
-from scipy.sparse import csr_matrix
+import os
+import sys
+from vtk.util.numpy_support import numpy_to_vtk
+
+#--------------------------
 
 @contextmanager
 def stdout_redirected(to=os.devnull):
@@ -347,7 +355,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
                 # Append the solution to the list of solutions
                 solved.append(sol)
                 
-            solved = csr_matrix(solved).tocsr().T
+            solved = sp.csr_matrix(solved).tocsr().T
             tolerance = 1e-07  # Adjust as needed
             
             maybeB = matrixA.dot(solved)
