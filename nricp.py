@@ -296,7 +296,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             logging.info(" | Alpha is not per vertex (stiffness is global)")
 
         j = 0
-        while True:  # iterate until convergence
+        while j < 25:  # iterate until convergence
             j += 1  # track the iterations for this alpha/landmark weight
             logging.info(" | *** Iterate until convergence ***")
             # find nearest neighbour and the normals
@@ -311,7 +311,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             logging.info(" |  | If points are already on the mesh, in edge_point_weights is false")
             # 2. Normals
             # Calculate the normals of the current v_i
-            current_deformed_points_trimesh = TriMesh(current_deformed_points, trilist=trilist, copy=False)
+            current_deformed_points_trimesh = TriMesh(current_deformed_points, trilist = trilist, copy = False)
             current_deformed_points_normals = current_deformed_points_trimesh.vertex_normals()
             logging.info(" |  | Calculated normals")
             # Extract the corresponding normals from the target
@@ -330,7 +330,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             logging.info(" |  | Divided values")
 
             # Build the sparse diagonal weight matrix
-            sparse_diagonal_weight_matrix = sp.diags(mask_all.astype(np.float64)[None, :], [0])
+            sparse_diagonal_weight_matrix = sp.diags(mask_all.astype(np.float64)[None, :], [0]) # type: ignore
             logging.info(" |  | Building sparse diagonal weight matrix...")
 
             data = np.hstack((current_deformed_points.ravel(), array_of_ones))
@@ -345,9 +345,9 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             matrixB = sp.vstack(to_stack_B).tocsr()
             
             solved = []
-            for i in range(matrixB.shape[1]):
+            for count in range(matrixB.shape[1]):
                 # Extract the i-th row of b
-                b_row = matrixB[:, i].reshape(1, -1)
+                b_row = matrixB[:, count].reshape(1, -1)
                 
                 # Solve the linear system for the i-th right-hand side vector
                 (sol, _, _, _, _, _, _, _) = lsmr(matrixA, toarray_without_loss(b_row))
@@ -368,7 +368,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
 
             # deform template
             previous_deformed_points = current_deformed_points
-            current_deformed_points = data_sparse_matrix.dot(solved)
+            current_deformed_points = toarray_without_loss(data_sparse_matrix.dot(solved))
             deformation_per_step = current_deformed_points - previous_deformed_points
             logging.info(" |  | Deformed template")
 
@@ -379,7 +379,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
 
             current_instance = trimesh_source.copy()
             current_instance.points = current_deformed_points.copy()
-            logging.info(f" |  | Finished iteration {i}")
+            logging.info(f" |  | Finished iteration {j}")
             
             # track the progress of the algorithm per-iteration
             info_dict = {
@@ -388,18 +388,20 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
                 "prop_omitted": prop_omitted,
                 "prop_omitted_norms": prop_omitted_norms,
                 "prop_omitted_edges": prop_omitted_edges,
-                "delta": error_delta,
                 "mask_normals": mask_normals,
                 "mask_edges": mask_edges,
                 "mask_all": mask_all,
                 "nearest_points": restore.apply(closest_points),
                 "deformation_per_step": deformation_per_step,
+                "error_delta": error_delta
             }
 
             logging.info(f"|{'-' * i} {info_dict}")
 
             if stop_criterion < threshold:
                 break
-            
+        
+        logging.info(f" |  | Finished iteration {i}")
+        
     logging.info("Non-Rigid ICP done!")
     return current_deformed_points

@@ -1,6 +1,7 @@
 from menpo.transform.homogeneous.affine import DiscreteAffine
 from menpo.transform.homogeneous.similarity import Similarity
 from menpo.shape import PointCloud
+from menpo.shape.adjacency import mask_adjacency_array, reindex_adjacency_array
 import numpy as np
 import vtk
 from warnings import warn
@@ -98,7 +99,7 @@ def compute_vertex_normals(points, trilist):
     return _normalize(vertex_normals)
 
 class TriMesh(PointCloud):
-    def __init__(self, points, trilist=None, copy = True):
+    def __init__(self, points:np.ndarray, trilist = None, copy = True):
         super(TriMesh, self).__init__(points, copy = copy)
         if trilist is None:
             from scipy.spatial import Delaunay  # expensive import
@@ -143,6 +144,35 @@ class TriMesh(PointCloud):
         if self.n_dims != 3:
             raise ValueError("Normals are only valid for 3D meshes")
         return compute_vertex_normals(self.points, self.trilist)
+    
+    def unique_edge_indices(self):
+        r"""An unordered index into points that rebuilds the unique edges of
+        this :map:`TriMesh`.
+
+        Note that each physical edge will only be counted once in this method
+        (i.e. edges shared between neighbouring triangles are only counted once
+        not twice). The ordering should be considered random.
+
+        Returns
+        -------
+        unique_edge_indices : ``(n_unique_edges, 2)`` `ndarray`
+            Return a point index that rebuilds all edges present in this
+            :map:`TriMesh` only once.
+        """
+        # Get a sorted list of edge pairs. sort ensures that each edge is
+        # ordered from lowest index to highest.
+        edge_pairs = np.sort(self.edge_indices())
+
+        # We want to remove duplicates - this is a little hairy: basically we
+        # get a view on the array where each pair is considered by numpy to be
+        # one item
+        edge_pair_view = np.ascontiguousarray(edge_pairs).view(
+            np.dtype((np.void, edge_pairs.dtype.itemsize * edge_pairs.shape[1]))
+        )
+        # Now we can use this view to ask for only unique edges...
+        unique_edge_index = np.unique(edge_pair_view, return_index=True)[1]
+        # And use that to filter our original list down
+        return edge_pairs[unique_edge_index]
 
     @property
     def n_tris(self):
