@@ -45,7 +45,7 @@ def replace(garment, Y:list, Z:list):
     logging.info("|- : Filled garment replacing Y and Z values")
     return garment
 
-def plot_alignment(garment_vertices, smpl_vertices, angle:int) -> None:
+def plot_alignment_2(garment_vertices, smpl_vertices, angle:int) -> None:
     """Display the graph in a new window
 
     Args:
@@ -79,7 +79,7 @@ def plot_alignment(garment_vertices, smpl_vertices, angle:int) -> None:
     plt.show()
     logging.info("|- : Displayed an element!")
     
-def plot_alignment(garment_vertices, angle:int) -> None:
+def plot_alignment_1(garment_vertices, angle:int) -> None:
     """Display the graph in a new window
 
     Args:
