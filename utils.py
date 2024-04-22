@@ -41,7 +41,7 @@ def replace(garment, Y:list, Z:list):
     """
     length:int = len(Y)
     for i in range(length):
-        garment[i] = [garment[i][0], Y[i], Z[i]]
+        garment[i] = [garment[i][0], Y[i] - 0.25, Z[i]]
     logging.info("|- : Filled garment replacing Y and Z values")
     return garment
 

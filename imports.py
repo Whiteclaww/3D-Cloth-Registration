@@ -280,7 +280,7 @@ class VTKClosestPointLocator(object):
         efficient future lookups.
     """
 
-    def __init__(self, vtk_mesh):
+    '''def __init__(self, vtk_mesh):
         cell_locator = vtk.vtkCellLocator()
         cell_locator.SetDataSet(vtk_mesh)
         cell_locator.BuildLocator()
@@ -314,7 +314,28 @@ class VTKClosestPointLocator(object):
             snapped_points.append(snapped)
             indices.append(index)
 
-        return np.array(snapped_points), np.array(indices)
+        return np.array(snapped_points), np.array(indices)'''
+    
+    def __init__(self, vtk_mesh):
+        self.cell_locator = vtk.vtkCellLocator()
+        self.cell_locator.SetDataSet(vtk_mesh)
+        self.cell_locator.BuildLocator()
+
+        self._c_point = np.zeros(3)
+        self._cell_id = vtk.mutable(0)
+        self._sub_id = vtk.mutable(0)
+        self._distance = vtk.mutable(0.0)
+
+    def __call__(self, points):
+        snapped_points = np.zeros_like(points)
+        indices = np.zeros(len(points), dtype=int)
+        
+        for i, point in enumerate(points):
+            self.cell_locator.FindClosestPoint(point, self._c_point, self._cell_id, self._sub_id, self._distance)
+            snapped_points[i] = self._c_point[:]
+            indices[i] = self._cell_id.get()
+        
+        return snapped_points, indices
 
     def _find_single_closest_point(self, point):
         r"""Return the nearest point on the mesh and the index of the nearest

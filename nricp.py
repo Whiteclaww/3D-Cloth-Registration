@@ -50,7 +50,8 @@ def stdout_redirected(to=os.devnull):
                 # restore stdout.
                 # buffering and flags such as CLOEXEC may be different
                 redirect_stdout(to=old_stdout)
-    
+
+#--------------------------
 
 def trimesh_to_vtk(trimesh: TriMesh):
     r"""Return a `vtkPolyData` representation of a :map:`TriMesh` instance
@@ -192,7 +193,7 @@ def toarray(matrix):
         result[i] = val
     return result
 
-def spsolve(A, B, tolerance:float = 1e-06):
+def spsolve(A, B, tolerance:float = 1e-05):
     r"""
     Solve A*X = B (matrices)
     Since B is much smaller than A, we divide B in multiple vectors, calculate A*X = b then append every X to the result
@@ -202,27 +203,55 @@ def spsolve(A, B, tolerance:float = 1e-06):
         B (sparse matrix)
     """
     X = []
+    tol = 1e-17
     for count in range(B.shape[1]):
         # Extract the i-th row of b
         b = B[:, count].reshape(1, -1)
         
         # Solve the linear system for the i-th right-hand side vector
-        (x, _, _, _, _, _, _, _) = lsmr(A, toarray_without_loss(b))
+        (solved_row_b, stop, _, norm, _, _, _, _) = lsmr(A, toarray_without_loss(b), atol=tol, btol=tol, damp=0, conlim=0)
+        
+        if stop != 5 and stop != 2:
+            logging.error("Error Solving Ax=B")
         
         # Append the solution to the list of solutions
-        X.append(x)
+        X.append(solved_row_b)
         
     X = sp.csr_matrix(X).tocsr().T
     
     maybeB:sp.csr_matrix = A.dot(X)
     
     abs_diff = np.abs(toarray_without_loss(maybeB) - toarray_without_loss(B))
-    if np.all(abs_diff < tolerance).all() and maybeB.shape == B.shape:
+    if np.all(abs_diff <= tolerance).all() and maybeB.shape == B.shape:
         logging.info(" |  | Verified that A * X = B")
     else:
-        logging.error("=====Error when verifying A * X = B")
+        logging.error("=====Error when verifying A * X = B, precision error")
         
     return X
+
+import scipy.spatial.distance as dist
+
+def hausdorff_distance(mesh1, mesh2):
+    """
+    Compute the Hausdorff distance between two meshes.
+    """
+    # Compute pairwise distances between vertices of mesh1 and mesh2
+    distances1 = dist.cdist(mesh1, mesh2)
+    distances2 = dist.cdist(mesh2, mesh1)
+    
+    # Find the minimum distance from each vertex in mesh1 to mesh2
+    min_distances1 = np.min(distances1, axis=1)
+    
+    # Find the minimum distance from each vertex in mesh2 to mesh1
+    min_distances2 = np.min(distances2, axis=1)
+    
+    # Hausdorff distance is the maximum of these minimum distances
+    hausdorff_dist = max(np.max(min_distances1), np.max(min_distances2))
+    
+    return hausdorff_dist
+
+
+
 
 
 
@@ -244,13 +273,9 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
     (trimesh_source, trimesh_target, translation) = transform(source, target)
     log_counter += 1
     logging.info(f"|-{log_counter}: Transformed meshes again (applied translation)")
-    
-    #restore:Translation = translation.pseudoinverse()
-    log_counter += 1
-    logging.info(f"|-{log_counter}: Pseudoinverse on translation applied")
 
-    n_dims = trimesh_source.n_dims
     # Homogeneous dimension (1 extra for translation effects)
+    n_dims = trimesh_source.n_dims
     h_dims = n_dims + 1
     current_deformed_points, trilist = trimesh_source.points, trimesh_source.trilist
     n = current_deformed_points.shape[0]  # record number of points
@@ -289,14 +314,9 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
     log_counter += 1
     logging.info(f"|-{log_counter}: Initialized transformation")
 
-    stiffness_weights = [1] * iterations
+    alpha = 1
     log_counter += 1
     logging.info(f"|-{log_counter}: Created stiffness weights")
-
-    data_weights:list = [None] * iterations
-
-    log_counter += 1
-    logging.info(f"|-{log_counter}: Instantiated data and stiffness weights")
 
     row = np.hstack((np.repeat(np.arange(n)[:, None], n_dims, axis=1).ravel(), np.arange(n)))
 
@@ -306,10 +326,10 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
     log_counter += 1
     logging.info(f"|-{log_counter}: Parsing matrix")
 
-    for i, (alpha, _) in enumerate(zip(stiffness_weights, data_weights), 1):
+    for i in range(0, iterations):
         logging.info(f"*** Iteration {i} ***")
 
-        alpha_is_per_vertex = isinstance(alpha, np.ndarray)
+        '''alpha_is_per_vertex = isinstance(alpha, np.ndarray)
         if alpha_is_per_vertex:
             # stiffness is provided per-vertex
             if alpha.shape[0] != trimesh_source.n_points:
@@ -320,14 +340,12 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             logging.info(" | Alpha is per vertex")
         else:
             # stiffness is global - just a scalar multiply. Note that here
-            # we don't have to recalculate M_kron_G_s
-            alpha_times_incidence_heavier_matrix = alpha * heavier_incidence_matrix
-            logging.info(" | Alpha is not per vertex (stiffness is global)")
-        
-        previousX_initial = np.tile(np.zeros((n_dims, h_dims)), n).T
+            # we don't have to recalculate M_kron_G_s'''
+        alpha_times_incidence_heavier_matrix = alpha * heavier_incidence_matrix
+        logging.info(" | Alpha is not per vertex (stiffness is global)")
 
         j = 0
-        while j < 1:  # iterate until convergence                          SUPPOSED TO BE WHILE TRUE
+        while j < 50:  # iterate until convergence                          SUPPOSED TO BE WHILE TRUE
             j += 1  # track the iterations for this alpha/landmark weight
             logging.info(" | *** Iterate until convergence ***")
             # find nearest neighbour and the normals
@@ -394,7 +412,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             #stop_criterion = error_delta / np.sqrt(np.size(previousX))
 
             # Update previous solution
-            previousX_initial = solved.copy()
+            #previousX_initial = solved.copy()
             
             
             
