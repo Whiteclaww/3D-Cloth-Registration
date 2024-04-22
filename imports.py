@@ -280,19 +280,19 @@ class VTKClosestPointLocator(object):
         efficient future lookups.
     """
 
-    '''def __init__(self, vtk_mesh):
+    def __init__(self, vtk_mesh):
         cell_locator = vtk.vtkCellLocator()
         cell_locator.SetDataSet(vtk_mesh)
         cell_locator.BuildLocator()
         self.cell_locator = cell_locator
 
         # prepare some private properties that will be filled in for us by VTK
-        self._c_point = [0.0, 0.0, 0.0]
+        self._c_point = np.zeros(3)
         self._cell_id = vtk.mutable(0)
         self._sub_id = vtk.mutable(0)
         self._distance = vtk.mutable(0.0)
-
-    def __call__(self, points:np.ndarray):
+        
+    def __call__(self, points):
         r"""Return the nearest points on the mesh and the index of the nearest
         triangle for a collection of points. This is a lower-level algorithm
         and operates directly on a numpy array rather than an pointcloud.
@@ -308,25 +308,6 @@ class VTKClosestPointLocator(object):
             A tuple of the nearest points on the `vtkPolyData` and the triangle
             indices of the triangles that the nearest point is located inside of.
         """
-        snapped_points, indices = [], []
-        for p in points:
-            snapped, index = self._find_single_closest_point(p)
-            snapped_points.append(snapped)
-            indices.append(index)
-
-        return np.array(snapped_points), np.array(indices)'''
-    
-    def __init__(self, vtk_mesh):
-        self.cell_locator = vtk.vtkCellLocator()
-        self.cell_locator.SetDataSet(vtk_mesh)
-        self.cell_locator.BuildLocator()
-
-        self._c_point = np.zeros(3)
-        self._cell_id = vtk.mutable(0)
-        self._sub_id = vtk.mutable(0)
-        self._distance = vtk.mutable(0.0)
-
-    def __call__(self, points):
         snapped_points = np.zeros_like(points)
         indices = np.zeros(len(points), dtype=int)
         
@@ -336,23 +317,3 @@ class VTKClosestPointLocator(object):
             indices[i] = self._cell_id.get()
         
         return snapped_points, indices
-
-    def _find_single_closest_point(self, point):
-        r"""Return the nearest point on the mesh and the index of the nearest
-        triangle
-
-        Parameters
-        ----------
-        point : ``(3,)`` `ndarray`
-            Query point
-
-        Returns
-        -------
-        `nearest_point`, `tri_index` : ``(3,)`` `ndarray`, ``int``
-            A tuple of the nearest point on the `vtkPolyData` and the triangle
-            index of the triangle that the nearest point is located inside of.
-        """
-        self.cell_locator.FindClosestPoint(
-            point, self._c_point, self._cell_id, self._sub_id, self._distance
-        )
-        return self._c_point[:], self._cell_id.get()

@@ -8,7 +8,6 @@ from scipy.sparse.linalg import lsmr
 import os
 import sys
 from vtk.util.numpy_support import numpy_to_vtk
-
 #--------------------------
 
 @contextmanager
@@ -137,9 +136,9 @@ def node_arc_incidence_matrix(source):
     data = np.hstack((-1 * np.ones(m), np.ones(m)))
     return sp.coo_matrix((data, (row, col))), unique_edge_pairs
 
-def non_rigid_icp(source, target, eps = 1e-3, iterations = 10, generate_instances = True):
+def non_rigid_icp(source, target, eps = 1e-03, iterations = 1, generate_instances = True):
     # call the generator version of NICP, always returning a generator
-    generator = non_rigid_icp_generator(source, target, threshold = eps, iterations = iterations)
+    generator = non_rigid_icp_generator(source, target, threshold = eps, i_iterations = iterations)
     
     # the handler decides whether the user get's details and each iteration returned, or just the final result.
     return non_rigid_icp_generator_handler(generator, generate_instances)
@@ -157,17 +156,6 @@ def non_rigid_icp_generator_handler(generator, generate_instances):
                 instance = next(generator)
             except StopIteration:
                 return instance[0]
-
-def transform(source:np.ndarray, target:np.ndarray):
-    trimesh_source:TriMesh = TriMesh(source)
-    trimesh_target:TriMesh = TriMesh(target)
-    
-    translation:Translation = Translation(-1 * trimesh_source.centre())
-    
-    trimesh_source:TriMesh = translation.apply(trimesh_source) # type: ignore (TriMesh is indeed the same as the returned object)
-    trimesh_target:TriMesh = translation.apply(trimesh_target) # type: ignore
-    
-    return(trimesh_source, trimesh_target, translation)
 
 def toarray_without_loss(sparse_matrix):
     # Get the shape of the sparse matrix
@@ -193,7 +181,7 @@ def toarray(matrix):
         result[i] = val
     return result
 
-def spsolve(A, B, tolerance:float = 1e-05):
+def spsolve(A, B):
     r"""
     Solve A*X = B (matrices)
     Since B is much smaller than A, we divide B in multiple vectors, calculate A*X = b then append every X to the result
@@ -203,13 +191,13 @@ def spsolve(A, B, tolerance:float = 1e-05):
         B (sparse matrix)
     """
     X = []
-    tol = 1e-17
+    tol = 0#1e-17
     for count in range(B.shape[1]):
         # Extract the i-th row of b
         b = B[:, count].reshape(1, -1)
         
         # Solve the linear system for the i-th right-hand side vector
-        (solved_row_b, stop, _, norm, _, _, _, _) = lsmr(A, toarray_without_loss(b), atol=tol, btol=tol, damp=0, conlim=0)
+        (solved_row_b, stop, _, _, _, _, _, _) = lsmr(A, toarray_without_loss(b), atol=tol, btol=tol, damp=0, conlim=0)
         
         if stop != 5 and stop != 2:
             logging.error("Error Solving Ax=B")
@@ -219,36 +207,16 @@ def spsolve(A, B, tolerance:float = 1e-05):
         
     X = sp.csr_matrix(X).tocsr().T
     
-    maybeB:sp.csr_matrix = A.dot(X)
+    '''maybeB:sp.csr_matrix = A.dot(X)
     
     abs_diff = np.abs(toarray_without_loss(maybeB) - toarray_without_loss(B))
     if np.all(abs_diff <= tolerance).all() and maybeB.shape == B.shape:
         logging.info(" |  | Verified that A * X = B")
     else:
-        logging.error("=====Error when verifying A * X = B, precision error")
+        logging.error("=====Error when verifying A * X = B, precision error")'''
         
     return X
 
-import scipy.spatial.distance as dist
-
-def hausdorff_distance(mesh1, mesh2):
-    """
-    Compute the Hausdorff distance between two meshes.
-    """
-    # Compute pairwise distances between vertices of mesh1 and mesh2
-    distances1 = dist.cdist(mesh1, mesh2)
-    distances2 = dist.cdist(mesh2, mesh1)
-    
-    # Find the minimum distance from each vertex in mesh1 to mesh2
-    min_distances1 = np.min(distances1, axis=1)
-    
-    # Find the minimum distance from each vertex in mesh2 to mesh1
-    min_distances2 = np.min(distances2, axis=1)
-    
-    # Hausdorff distance is the maximum of these minimum distances
-    hausdorff_dist = max(np.max(min_distances1), np.max(min_distances2))
-    
-    return hausdorff_dist
 
 
 
@@ -259,7 +227,7 @@ def hausdorff_distance(mesh1, mesh2):
 
 
 
-def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:float, iterations:int):
+def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:float, i_iterations:int = 5, j_iterations:int = 15, alpha = 1, verbose = False):
     """
     Deforms the source trimesh to align with to optimally the target.
     """
@@ -269,8 +237,8 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
     # rescale the source down to a sensible size (so it fits inside box of
     # diagonal 1) and is centred on the origin. We'll undo this after the fit
     # so the user can use whatever scale they prefer.
-    
-    (trimesh_source, trimesh_target, translation) = transform(source, target)
+    trimesh_source:TriMesh = TriMesh(source)
+    trimesh_target:TriMesh = TriMesh(target)
     log_counter += 1
     logging.info(f"|-{log_counter}: Transformed meshes again (applied translation)")
 
@@ -279,7 +247,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
     h_dims = n_dims + 1
     current_deformed_points, trilist = trimesh_source.points, trimesh_source.trilist
     n = current_deformed_points.shape[0]  # record number of points
-
+    
     #edge_triangles = trimesh_source.boundary_tri_index()
     log_counter += 1
     logging.info(f"|-{log_counter}: Boundary triangle indices")
@@ -314,19 +282,15 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
     log_counter += 1
     logging.info(f"|-{log_counter}: Initialized transformation")
 
-    alpha = 1
-    log_counter += 1
-    logging.info(f"|-{log_counter}: Created stiffness weights")
-
     row = np.hstack((np.repeat(np.arange(n)[:, None], n_dims, axis=1).ravel(), np.arange(n)))
-
     x = np.arange(n * h_dims).reshape((n, h_dims))
     col = np.hstack((x[:, :n_dims].ravel(), x[:, n_dims]))
     array_of_ones = np.ones(n)
     log_counter += 1
     logging.info(f"|-{log_counter}: Parsing matrix")
 
-    for i in range(0, iterations):
+    for i in range(0, i_iterations):
+        print(i)
         logging.info(f"*** Iteration {i} ***")
 
         '''alpha_is_per_vertex = isinstance(alpha, np.ndarray)
@@ -341,18 +305,21 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
         else:
             # stiffness is global - just a scalar multiply. Note that here
             # we don't have to recalculate M_kron_G_s'''
-        alpha_times_incidence_heavier_matrix = alpha * heavier_incidence_matrix
+        if alpha != 1:
+            alpha_times_incidence_heavier_matrix = alpha * heavier_incidence_matrix
+        else:
+            alpha_times_incidence_heavier_matrix = heavier_incidence_matrix
         logging.info(" | Alpha is not per vertex (stiffness is global)")
-
+        
         j = 0
-        while j < 50:  # iterate until convergence                          SUPPOSED TO BE WHILE TRUE
-            j += 1  # track the iterations for this alpha/landmark weight
+        while j < j_iterations:  # iterate until convergence                          SUPPOSED TO BE WHILE TRUE
+            j += 1  # track the iterations for this alpha/landmark weight   
             logging.info(" | *** Iterate until convergence ***")
             # find nearest neighbour and the normals
-            
+            print(f"|-{j}")
             
             # this step is very slow
-            closest_points, triangle_indices = closest_points_on_target(current_deformed_points)   # ERROR: FindClosestPoint argument 1: expected a sequence of 3 values, got -1 values
+            closest_points, triangle_indices = closest_points_on_target(current_deformed_points)
 
             # ---- WEIGHTS ----
             # 1.  Edges
@@ -413,8 +380,7 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
 
             # Update previous solution
             #previousX_initial = solved.copy()
-            
-            
+
             
             
             
