@@ -16,12 +16,17 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     #   - CRITICAL
     # The logger only displays its level of logging and all the ones below but not the ones on top
     # Ex: WARNING(or WARN) is the default, will print out only WARN, ERROR, CRITICAL
-    logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s: ==' + garment_file + '== %(message)s', datefmt='%I:%M:%S %p')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: ==' + garment_file + '== %(message)s', datefmt='%I:%M:%S %p')
     
     # Load garment and SMPL body
     logging.info("Attempting to load OBJ and SMPL")
     garmentVertices = utils.load_obj(garment_file)
-    smplVertices = utils.load_smpl(smpl_file)
+    if smpl_file[-3:] == "npz":
+        smplVertices = utils.load_smpl(smpl_file)
+    elif smpl_file[-3:] == "obj":
+        smplVertices = utils.load_obj(smpl_file)
+    else:
+        raise Exception("Incompatible data type")
     
     # Viewpoint angle on XY plan, optimal are: 100: front, 180: side
     ANGLE = 100
@@ -45,7 +50,7 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
 
     # Non-rigid ICP
     logging.info("Attempting to apply a Non-Rigid ICP from garment to SMPL")
-    aligned_garment = non_rigid_icp(garmentVertices, smplVertices, iterations = 5)
+    aligned_garment = non_rigid_icp(garmentVertices, smplVertices, iterations = 20)
     logging.info("Success applying Non-Rigid ICP")
     
     #utils.plot_alignment_2(aligned_garment, smplVertices, ANGLE)

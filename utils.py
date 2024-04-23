@@ -12,6 +12,14 @@ def load_obj(file_path:str):
     logging.info(f"|- : Loaded OBJ object {file_path}")
     return np.array(vertices)
 
+def save_simplified_smpl(file_path:str, return_file_path:str):
+    smpl = load_obj(file_path)
+    result_smpl = []
+    for i in smpl:
+        if i[1] < 0.35 and i[1] > -1.05 and abs(i[0]) < 0.7:
+            result_smpl.append(i)
+    save_obj(return_file_path, result_smpl)
+
 def load_smpl(file_path:str):
     with np.load(file_path) as data:
         logging.info(f"|- : Loaded SMPL object {file_path}")

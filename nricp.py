@@ -227,7 +227,7 @@ def spsolve(A, B):
 
 
 
-def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:float, i_iterations:int = 5, j_iterations:int = 15, alpha = 1, verbose = False):
+def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:float, i_iterations:int = 5, j_iterations:int = 30, alpha = 1, verbose = False):
     """
     Deforms the source trimesh to align with to optimally the target.
     """
