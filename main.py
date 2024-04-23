@@ -6,7 +6,7 @@ from nricp import non_rigid_icp
 # Setting up so that in the logs the file name shows up
 #logger = logging.getLogger(__name__)
 
-def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
+def main(garment_file:str, smpl_file:str, aligned_garment_file:str, i_iterations:int = 1, j_iterations:int = 20, alpha:int = 1):
     # Setting up logging, the level corresponds to what will be shown, options are:
     #   - NOTSET
     #   - DEBUG
@@ -50,7 +50,7 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
 
     # Non-rigid ICP
     logging.info("Attempting to apply a Non-Rigid ICP from garment to SMPL")
-    aligned_garment = non_rigid_icp(garmentVertices, smplVertices, iterations = 20)
+    aligned_garment = non_rigid_icp(garmentVertices, smplVertices, i_iterations = i_iterations, j_iterations = j_iterations, alpha = alpha)
     logging.info("Success applying Non-Rigid ICP")
     
     #utils.plot_alignment_2(aligned_garment, smplVertices, ANGLE)

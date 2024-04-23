@@ -1,37 +1,6 @@
-from menpo.transform.homogeneous.affine import DiscreteAffine
-from menpo.transform.homogeneous.similarity import Similarity
 from menpo.shape import PointCloud
 import numpy as np
-import vtk
 from warnings import warn
-
-#--------------------------
-
-class Translation(DiscreteAffine, Similarity):
-    r"""
-    An ``n_dims``-dimensional translation transform.
-
-    Parameters
-    ----------
-    translation : ``(n_dims,)`` `ndarray`
-        The translation in each axis.
-    skip_checks : `bool`, optional
-        If ``True`` avoid sanity checks on ``h_matrix`` for performance.
-    """
-
-    def __init__(self, translation, skip_checks=False):
-        translation = np.asarray(translation)
-        h_matrix = np.eye(translation.shape[0] + 1)
-        h_matrix[:-1, -1] = translation
-        Similarity.__init__(self, h_matrix, copy=False, skip_checks=skip_checks)
-
-    def pseudoinverse(self):
-        r"""
-        The inverse translation (negated).
-
-        :type: :class:`Translation`
-        """
-        return Translation(-self.translation_component, skip_checks=True)
 
 def _normalize(v:np.ndarray):
     magnitude = np.sqrt((v ** 2).sum(axis=1, keepdims=True))
@@ -46,56 +15,6 @@ def _normalize(v:np.ndarray):
     # Replace NaN values with 0
     normalized_v = np.nan_to_num(normalized_v)
     return normalized_v
-
-def compute_face_normals(points:np.ndarray, trilist:np.ndarray):
-    """
-    Compute per-face normals of the vertices given a list of
-    faces.
-
-    Parameters
-    ----------
-    points : (N, 3) float32/float64 ndarray
-        The list of points to compute normals for.
-    trilist : (M, 3) int16/int32/int64 ndarray
-        The list of faces (triangle list).
-
-    Returns
-    -------
-    face_normal : (M, 3) float32/float64 ndarray
-        The normal per face.
-    :return:
-    """
-    pt = points[trilist]
-    a, b, c = pt[:, 0], pt[:, 1], pt[:, 2]
-    norm = np.cross(b - a, c - a)
-    return _normalize(norm)
-
-
-def compute_vertex_normals(points, trilist):
-    """
-    Compute the per-vertex normals of the vertices given a list of
-    faces.
-
-    Parameters
-    ----------
-    points : (N, 3) float32/float64 ndarray
-        The list of points to compute normals for.
-    trilist : (M, 3) int16/int32/int64 ndarray
-        The list of faces (triangle list).
-
-    Returns
-    -------
-    vertex_normal : (N, 3) float32/float64 ndarray
-        The normal per vertex.
-    """
-    face_normals = compute_face_normals(points, trilist)
-
-    vertex_normals = np.zeros(points.shape, dtype=points.dtype)
-    np.add.at(vertex_normals, trilist[:, 0], face_normals)
-    np.add.at(vertex_normals, trilist[:, 1], face_normals)
-    np.add.at(vertex_normals, trilist[:, 2], face_normals)
-
-    return _normalize(vertex_normals)
 
 class TriMesh(PointCloud):
     def __init__(self, points:np.ndarray, trilist = None, copy = True):
@@ -142,7 +61,17 @@ class TriMesh(PointCloud):
         """
         if self.n_dims != 3:
             raise ValueError("Normals are only valid for 3D meshes")
-        return compute_vertex_normals(self.points, self.trilist)
+        point = self.points[self.trilist]
+        a, b, c = point[:, 0], point[:, 1], point[:, 2]
+        norm = np.cross(b - a, c - a)
+        face_normals = _normalize(norm)
+
+        vertex_normals = np.zeros(self.points.shape, dtype=self.points.dtype)
+        np.add.at(vertex_normals, self.trilist[:, 0], face_normals)
+        np.add.at(vertex_normals, self.trilist[:, 1], face_normals)
+        np.add.at(vertex_normals, self.trilist[:, 2], face_normals)
+
+        return _normalize(vertex_normals)
     
     def unique_edge_indices(self):
         r"""An unordered index into points that rebuilds the unique edges of
@@ -199,7 +128,10 @@ class TriMesh(PointCloud):
         """
         if self.n_dims != 3:
             raise ValueError("Normals are only valid for 3D meshes")
-        return compute_face_normals(self.points, self.trilist)
+        point = self.points[self.trilist]
+        a, b, c = point[:, 0], point[:, 1], point[:, 2]
+        norm = np.cross(b - a, c - a)
+        return _normalize(norm)
 
     def boundary_tri_index(self) -> np.ndarray:
         r"""Boolean index into triangles that are at the edge of the TriMesh.
@@ -267,53 +199,3 @@ class TriMesh(PointCloud):
         """
         tl = self.trilist
         return np.hstack((tl[:, [0, 1]], tl[:, [1, 2]], tl[:, [2, 0]])).reshape(-1, 2)
-    
-class VTKClosestPointLocator(object):
-    r"""A callable that can be used to find the closest point on a given
-    `vtkPolyData` for a query point.
-
-    Parameters
-    ----------
-    vtk_mesh : `vtkPolyData`
-        The VTK mesh that will be queried for finding closest points. A
-        data structure will be initialized around this mesh which will enable
-        efficient future lookups.
-    """
-
-    def __init__(self, vtk_mesh):
-        cell_locator = vtk.vtkCellLocator()
-        cell_locator.SetDataSet(vtk_mesh)
-        cell_locator.BuildLocator()
-        self.cell_locator = cell_locator
-
-        # prepare some private properties that will be filled in for us by VTK
-        self._c_point = np.zeros(3)
-        self._cell_id = vtk.mutable(0)
-        self._sub_id = vtk.mutable(0)
-        self._distance = vtk.mutable(0.0)
-        
-    def __call__(self, points):
-        r"""Return the nearest points on the mesh and the index of the nearest
-        triangle for a collection of points. This is a lower-level algorithm
-        and operates directly on a numpy array rather than an pointcloud.
-
-        Parameters
-        ----------
-        points : ``(n_points, 3)`` `ndarray`
-            Query points
-
-        Returns
-        -------
-        `nearest_points`, `tri_indices` : ``(n_points, 3)`` `ndarray`, ``(n_points,)`` `ndarray`
-            A tuple of the nearest points on the `vtkPolyData` and the triangle
-            indices of the triangles that the nearest point is located inside of.
-        """
-        snapped_points = np.zeros_like(points)
-        indices = np.zeros(len(points), dtype=int)
-        
-        for i, point in enumerate(points):
-            self.cell_locator.FindClosestPoint(point, self._c_point, self._cell_id, self._sub_id, self._distance)
-            snapped_points[i] = self._c_point[:]
-            indices[i] = self._cell_id.get()
-        
-        return snapped_points, indices

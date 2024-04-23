@@ -1,13 +1,16 @@
-from imports import *
+from conversion import *
+from solver import spsolve
+from trimesh import *
+from vtk_additions import *
 
 from contextlib import contextmanager
 from io import UnsupportedOperation
+
 import logging
-import scipy.sparse as sp
-from scipy.sparse.linalg import lsmr
 import os
+import scipy.sparse as sp
 import sys
-from vtk.util.numpy_support import numpy_to_vtk
+
 #--------------------------
 
 @contextmanager
@@ -52,93 +55,9 @@ def stdout_redirected(to=os.devnull):
 
 #--------------------------
 
-def trimesh_to_vtk(trimesh: TriMesh):
-    r"""Return a `vtkPolyData` representation of a :map:`TriMesh` instance
-
-    Parameters
-    ----------
-    trimesh : :map:`TriMesh`
-        The menpo :map:`TriMesh` object that needs to be converted to a
-        `vtkPolyData`
-
-    Returns
-    -------
-    `vtk_mesh` : `vtkPolyData`
-        A VTK mesh representation of the Menpo :map:`TriMesh` data
-
-    Raises
-    ------
-    ValueError:
-        If the input trimesh is not 3D.
-    """
-    if trimesh.n_dims != 3:
-        raise ValueError("trimesh_to_vtk() only works on 3D TriMesh instances")
-    logging.info("|----1: entered trimesh_to_vtk")
-
-    mesh = vtk.vtkPolyData()
-    points = vtk.vtkPoints()
-    points.SetData(numpy_to_vtk(trimesh.points, deep=1))
-    mesh.SetPoints(points)
-
-    cells = vtk.vtkCellArray()
-    logging.info("|----2: initialisation")
-
-    # Create VTK cells manually
-    for tri in trimesh.trilist:
-        vtk_cell = vtk.vtkTriangle()
-        vtk_cell.GetPointIds().SetId(0, tri[0])
-        vtk_cell.GetPointIds().SetId(1, tri[1])
-        vtk_cell.GetPointIds().SetId(2, tri[2])
-        cells.InsertNextCell(vtk_cell)
-    logging.info("|----3: created VTK cells manually")
-
-    # Set cells
-    mesh.SetPolys(cells)
-    logging.info("|----4: set cells")
-    return mesh
-
-
-def numpyToVTK(data, multi_component = False, type = 'float'):
-    """
-    multi_components: rgb has 3 components
-    type：float or char
-    """
-    if type == 'float':
-        data_type = vtk.VTK_FLOAT
-    elif type == 'char':
-        data_type = vtk.VTK_UNSIGNED_CHAR
-    else:
-        raise RuntimeError('unknown type')
-    if multi_component == False:
-        if len(data.shape) == 2:
-            data = data[:, :, np.newaxis]
-        flat_data_array = data.transpose(2,1,0).flatten()
-        vtk_data = numpy_to_vtk(num_array=flat_data_array, deep=True, array_type=data_type)
-        shape = data.shape
-    else:
-        assert len(data.shape) == 3, 'only test for 2D RGB'
-        flat_data_array = data.transpose(1, 0, 2)
-        flat_data_array = np.reshape(flat_data_array, newshape=[-1, data.shape[2]])
-        vtk_data = numpy_to_vtk(num_array=flat_data_array, deep=True, array_type=data_type)
-        shape = [data.shape[0], data.shape[1], 1]
-    img = vtk.vtkImageData()
-    img.GetPointData().SetScalars(vtk_data)
-    img.SetDimensions(shape[0], shape[1], shape[2])
-    return img
-
-def node_arc_incidence_matrix(source):
-    unique_edge_pairs = source.unique_edge_indices()
-    m = unique_edge_pairs.shape[0]
-
-    # Generate a "node-arc" (i.e. vertex-edge) incidence matrix.
-    row = np.hstack((np.arange(m), np.arange(m)))
-    col = unique_edge_pairs.T.ravel()
-    data = np.hstack((-1 * np.ones(m), np.ones(m)))
-    return sp.coo_matrix((data, (row, col))), unique_edge_pairs
-
-def non_rigid_icp(source, target, eps = 1e-03, iterations = 1, generate_instances = True):
+def non_rigid_icp(source, target, i_iterations, j_iterations, alpha, eps = 1e-03, generate_instances = True):
     # call the generator version of NICP, always returning a generator
-    generator = non_rigid_icp_generator(source, target, threshold = eps, i_iterations = iterations)
+    generator = non_rigid_icp_generator(source, target, threshold = eps, i_iterations = i_iterations, j_iterations = j_iterations, alpha = alpha)
     
     # the handler decides whether the user get's details and each iteration returned, or just the final result.
     return non_rigid_icp_generator_handler(generator, generate_instances)
@@ -157,77 +76,7 @@ def non_rigid_icp_generator_handler(generator, generate_instances):
             except StopIteration:
                 return instance[0]
 
-def toarray_without_loss(sparse_matrix):
-    # Get the shape of the sparse matrix
-    m, n = sparse_matrix.shape
-    
-    # Create a dense array of zeros with the same shape as the sparse matrix
-    dense_array = np.zeros((m, n), dtype=sparse_matrix.dtype)
-    
-    # Retrieve the nonzero entries from the sparse matrix
-    row_indices, col_indices = sparse_matrix.nonzero()
-    data = sparse_matrix.data
-    
-    for i in range(len(row_indices)):
-        dense_array[row_indices[i], col_indices[i]] = data[i]
-    
-    return dense_array
-
-def toarray(matrix):
-    if matrix.shape[0] != 1:
-        return False
-    result = np.zeros(matrix.shape[1])
-    for i, val in zip(matrix.indices, matrix.data):
-        result[i] = val
-    return result
-
-def spsolve(A, B):
-    r"""
-    Solve A*X = B (matrices)
-    Since B is much smaller than A, we divide B in multiple vectors, calculate A*X = b then append every X to the result
-
-    Args:
-        A (sparse matrix)
-        B (sparse matrix)
-    """
-    X = []
-    tol = 0#1e-17
-    for count in range(B.shape[1]):
-        # Extract the i-th row of b
-        b = B[:, count].reshape(1, -1)
-        
-        # Solve the linear system for the i-th right-hand side vector
-        (solved_row_b, stop, _, _, _, _, _, _) = lsmr(A, toarray_without_loss(b), atol=tol, btol=tol, damp=0, conlim=0)
-        
-        if stop != 5 and stop != 2:
-            logging.error("Error Solving Ax=B")
-        
-        # Append the solution to the list of solutions
-        X.append(solved_row_b)
-        
-    X = sp.csr_matrix(X).tocsr().T
-    
-    '''maybeB:sp.csr_matrix = A.dot(X)
-    
-    abs_diff = np.abs(toarray_without_loss(maybeB) - toarray_without_loss(B))
-    if np.all(abs_diff <= tolerance).all() and maybeB.shape == B.shape:
-        logging.info(" |  | Verified that A * X = B")
-    else:
-        logging.error("=====Error when verifying A * X = B, precision error")'''
-        
-    return X
-
-
-
-
-
-
-
-
-
-
-
-def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:float, i_iterations:int = 5, j_iterations:int = 30, alpha = 1, verbose = False):
+def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:float, i_iterations:int, j_iterations:int, alpha, verbose = False):
     """
     Deforms the source trimesh to align with to optimally the target.
     """
@@ -290,7 +139,6 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
     logging.info(f"|-{log_counter}: Parsing matrix")
 
     for i in range(0, i_iterations):
-        print(i)
         logging.info(f"*** Iteration {i} ***")
 
         '''alpha_is_per_vertex = isinstance(alpha, np.ndarray)
@@ -316,7 +164,6 @@ def non_rigid_icp_generator(source:np.ndarray, target:np.ndarray, threshold:floa
             j += 1  # track the iterations for this alpha/landmark weight   
             logging.info(" | *** Iterate until convergence ***")
             # find nearest neighbour and the normals
-            print(f"|-{j}")
             
             # this step is very slow
             closest_points, triangle_indices = closest_points_on_target(current_deformed_points)
