@@ -6,7 +6,7 @@ from nricp import non_rigid_icp
 # Setting up so that in the logs the file name shows up
 #logger = logging.getLogger(__name__)
 
-def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
+def main(garment_file:str, smpl_file:str, aligned_garment_file:str, i_iterations:int = 1, j_iterations:int = 20, alpha:int = 1):
     # Setting up logging, the level corresponds to what will be shown, options are:
     #   - NOTSET
     #   - DEBUG
@@ -16,24 +16,27 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     #   - CRITICAL
     # The logger only displays its level of logging and all the ones below but not the ones on top
     # Ex: WARNING(or WARN) is the default, will print out only WARN, ERROR, CRITICAL
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: ==' + garment_file + '== %(message)s', datefmt='%I:%M:%S %p')
     
     # Load garment and SMPL body
     logging.info("Attempting to load OBJ and SMPL")
     garmentVertices = utils.load_obj(garment_file)
-    smplVertices = utils.load_smpl(smpl_file)
+    if smpl_file[-3:] == "npz":
+        smplVertices = utils.load_smpl(smpl_file)
+    elif smpl_file[-3:] == "obj":
+        smplVertices = utils.load_obj(smpl_file)
+    else:
+        raise Exception("Incompatible data type")
     
     # Viewpoint angle on XY plan, optimal are: 100: front, 180: side
     ANGLE = 100
-    utils.plot_alignment(garmentVertices, smplVertices, ANGLE)
+    #utils.plot_alignment_2(garmentVertices, smplVertices, ANGLE)
     
     # Fill the Y and Z lists
     logging.info("Attempting to fill the lists Y and Z before rotation of OBJ (always at a 90 degree angle)")
     garmentY:list = []
     garmentZ:list = []
     (garmentY, garmentZ) = utils.fillYZ(garmentVertices)
-    
-    print(type(garmentVertices))
     
     # Rotate the Y and Z lists
     logging.info("Attempting to rotate the garment")
@@ -43,17 +46,15 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     logging.info("Attempting to replace the Y and Z elements in the garment list")
     garmentVertices = utils.replace(garmentVertices, garmentY, garmentZ)
     
-    utils.plot_alignment(garmentVertices, smplVertices, ANGLE)
+    #utils.plot_alignment_2(garmentVertices, smplVertices, ANGLE)
 
     # Non-rigid ICP
-    #logging.info("Attempting to apply a Non-Rigid ICP from garment to SMPL")
-    #aligned_garment = non_rigid_icp(garmentVertices, smplVertices)
-    #logging.info("Success applying Non-Rigid ICP")
+    logging.info("Attempting to apply a Non-Rigid ICP from garment to SMPL")
+    aligned_garment = non_rigid_icp(garmentVertices, smplVertices, i_iterations = i_iterations, j_iterations = j_iterations, alpha = alpha)
+    logging.info("Success applying Non-Rigid ICP")
     
-    #print(type(aligned_garment))
-    
-    #utils.plot_alignment(aligned_garment, smplVertices, ANGLE)
+    #utils.plot_alignment_2(aligned_garment, smplVertices, ANGLE)
 
     # Save aligned garment
     logging.info("Attempting to save the aligned garment in OBJ")
-    #utils.save_obj(aligned_garment_file, aligned_garment)
+    utils.save_obj(aligned_garment_file, aligned_garment)
