@@ -48,9 +48,9 @@ class Test_Main():
         test_plot.test_plot_alignment_single()
     
     def test_pretreat(self):
-        test_pretreat.test_pretreating()
         test_pretreat.test_fillYZ()
         test_pretreat.test_replace()
+        test_pretreat.test_pretreating()
     
     def test_rotation_translate(self):
         test_rotation_translate.test_axis_rotation()
