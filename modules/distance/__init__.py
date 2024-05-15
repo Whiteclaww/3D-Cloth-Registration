@@ -1,1 +1,1 @@
-from .chamfer import chamfer_distance, ChamferDistance, dist_face
+from .chamfer import *

@@ -1,5 +1,5 @@
 #========[ IMPORTS ]========
-import neighbours
+from modules.distance import neighbours
 
 #========[ FUNCTIONS ]========
 

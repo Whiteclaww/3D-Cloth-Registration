@@ -1,7 +1,7 @@
 #========[ IMPORTS ]========
-import solver
+from modules.nricp import solver
 
 #========[ FUNCTIONS ]========
 
-def spsolve():
+def test_spsolve():
     pass

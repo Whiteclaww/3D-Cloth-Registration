@@ -6,7 +6,7 @@ import math
 import timeit
 from torch import Tensor
 
-from utils.tools import SMPLModel, Garment
+from modules.utils.classes import SMPLModel, Garment
 
 #========[ CLASSES ]========
 

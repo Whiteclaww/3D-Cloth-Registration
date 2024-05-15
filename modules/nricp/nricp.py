@@ -53,7 +53,7 @@ def stdout_redirected(to=os.devnull):
 
 #--------------------------
 
-def non_rigid_icp(source, target, i_iterations, j_iterations, alpha, eps = 1e-03, generate_instances = True):
+def non_rigid_icp(source, target, i_iterations = 1, j_iterations = 10, alpha = 5, eps = 1e-03, generate_instances = True):
     # call the generator version of NICP, always returning a generator
     generator = non_rigid_icp_generator(source, target, threshold = eps, i_iterations = i_iterations, j_iterations = j_iterations, alpha = alpha)
     

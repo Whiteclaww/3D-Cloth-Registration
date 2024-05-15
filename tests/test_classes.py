@@ -1,10 +1,10 @@
 #========[ IMPORTS ]========
-import rotation_translate
+from modules.utils import classes
 
 #========[ FUNCTIONS ]========
 
-def test_axis_rotation():
+def test_Garment():
     pass
 
-def test_origin_rotation():
+def test_SMPLModel():
     pass

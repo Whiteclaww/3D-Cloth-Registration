@@ -1,5 +1,5 @@
 #========[ IMPORTS ]========
-import conversion
+from modules.utils import conversion
 
 #========[ FUNCTIONS ]========
 

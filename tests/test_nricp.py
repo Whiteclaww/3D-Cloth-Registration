@@ -1,5 +1,5 @@
 #========[ IMPORTS ]========
-import nricp
+from modules.nricp import nricp
 
 #========[ FUNCTIONS ]========
 
