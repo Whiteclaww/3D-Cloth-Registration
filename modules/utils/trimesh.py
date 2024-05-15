@@ -29,7 +29,6 @@ class TriMesh(PointCloud):
                     "The copy flag was NOT honoured. A copy HAS been made. "
                     "Please ensure the data you pass is C-contiguous."
                 )
-                print(type(trilist))
                 trilist = np.array(trilist, copy = True, order = "C")
         else:
             trilist = np.array(trilist, copy = True, order = "C")

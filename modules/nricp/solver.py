@@ -1,4 +1,4 @@
-from conversion import toarray_without_loss
+from ..utils.conversion import toarray_without_loss
 import logging
 import scipy.sparse as sp
 from scipy.sparse.linalg import lsmr
