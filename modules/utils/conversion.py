@@ -1,9 +1,10 @@
-from trimesh import *
-from vtk_additions import *
+from .trimesh import *
+from .vtk_additions import *
 
+import torch
 import logging
 import scipy.sparse as sp
-from vtk.util.numpy_support import numpy_to_vtk
+from vtk.util.numpy_support import numpy_to_vtk     # Ignore the error
 
 def trimesh_to_vtk(trimesh: TriMesh):
     r"""Return a `vtkPolyData` representation of a :map:`TriMesh` instance
@@ -112,3 +113,17 @@ def toarray(matrix):
     for i, val in zip(matrix.indices, matrix.data):
         result[i] = val
     return result
+
+def tolist(list):
+    result = []
+    for i in list:
+        result.append(i)
+    return result
+
+def tofloat(tensor:torch.Tensor):
+    string = str(tensor)
+    only_str = ""
+    for i in string:
+        if i >= '0' and i <= '9' or i == '.':
+            only_str += i
+    return float(only_str)

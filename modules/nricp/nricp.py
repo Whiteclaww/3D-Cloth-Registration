@@ -1,7 +1,5 @@
-from conversion import *
-from solver import spsolve
-from trimesh import *
-from vtk_additions import *
+from ..utils import *
+from .solver import spsolve
 
 from contextlib import contextmanager
 from io import UnsupportedOperation

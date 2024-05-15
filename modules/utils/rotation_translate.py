@@ -1,6 +1,9 @@
-import math
-import numpy as np
+#========[ IMPORTS ]========
 import logging
+import numpy as np
+import math
+
+#========[ FUNCTIONS ]========
 
 # Rotation on X axis, on the centre of the garment
 def axis_rotation(garmentY:list, garmentZ:list, degree:int):
