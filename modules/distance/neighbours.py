@@ -1,8 +1,10 @@
-import numpy as np
+#========[ IMPORTS ]========
 from math import dist
+import numpy as np
 from sklearn.neighbors import NearestNeighbors
 import point_cloud_utils as pcu
 
+#========[ FUNCTIONS ]========
 
 def get_nearest(vertex, possible_values:np.ndarray):
     nearest_index = -1

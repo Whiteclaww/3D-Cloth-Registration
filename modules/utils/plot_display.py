@@ -1,6 +1,5 @@
 #========[ IMPORTS ]========
 import logging
-import numpy as np
 import matplotlib.pyplot as plt
 
 #========[ FUNCTIONS ]========

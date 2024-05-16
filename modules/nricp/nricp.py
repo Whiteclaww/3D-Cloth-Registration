@@ -1,15 +1,15 @@
-from ..utils import *
+#========[ IMPORTS ]========
+from modules.utils import *
 from .solver import spsolve
 
 from contextlib import contextmanager
 from io import UnsupportedOperation
-
 import logging
 import os
 import scipy.sparse as sp
 import sys
 
-#--------------------------
+#========[ FUNCTIONS ]========
 
 @contextmanager
 def stdout_redirected(to=os.devnull):

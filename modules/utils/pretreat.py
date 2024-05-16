@@ -1,6 +1,7 @@
 #========[ IMPORTS ]========
-import logging
 from modules.utils.rotation_translate import origin_rotation
+
+import logging
 
 #========[ FUNCTIONS ]========
 

@@ -1,3 +1,5 @@
+from .test_bvh_3 import *
+from .test_bvh_4 import *
 from .test_chamfer import *
 from .test_classes import *
 from .test_conversion import *

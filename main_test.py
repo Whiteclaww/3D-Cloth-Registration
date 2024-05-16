@@ -1,5 +1,6 @@
 #========[ IMPORTS ]========
 from tests import *
+
 import logging
 
 # Setting up so that in the logs the file name shows up
@@ -8,6 +9,33 @@ import logging
 #========[ FUNCTIONS ]========
 
 class Test_Main():
+    def test_bvh_3(self):
+        test_bvh_3.test_BoundingBox()
+        test_bvh_3.test_bvh()
+        test_bvh_3.test_build_bvh()
+        test_bvh_3.test_BVHNode()
+        test_bvh_3.test_compute_bounding_box()
+        test_bvh_3.test_distance_point_to_face()
+        test_bvh_3.test_distance_point_to_segment()
+        test_bvh_3.test_example()
+        test_bvh_3.test_face_centroid()
+        test_bvh_3.test_find_closest_face()
+        test_bvh_3.test_is_point_in_triangle()
+    
+    def test_bvh_4(self):
+        test_bvh_4.test_BoundingBox()
+        test_bvh_4.test_bvh()
+        test_bvh_4.test_build_bvh()
+        test_bvh_4.test_BVHNode()
+        test_bvh_4.test_compute_bounding_box()
+        test_bvh_4.test_distance_point_to_face()
+        test_bvh_4.test_distance_point_to_segment()
+        test_bvh_4.test_example()
+        test_bvh_4.test_face_centroid()
+        test_bvh_4.test_find_closest_face()
+        test_bvh_4.test_is_point_in_triangle()
+        test_bvh_4.test_is_point_in_quad()
+    
     def test_chamfer(self):
         test_chamfer.test_chamfer_distance()
         test_chamfer.test_dist_face()
@@ -21,6 +49,8 @@ class Test_Main():
     def test_classes(self):
         test_classes.test_Garment()
         test_classes.test_SMPLModel()
+        test_classes.test_Linked()
+        test_classes.test_Linked_Node()
     
     def test_conversion(self):
         test_conversion.test_node_arc_incidence_matrix()

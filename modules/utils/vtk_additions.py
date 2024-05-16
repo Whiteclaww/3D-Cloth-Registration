@@ -1,9 +1,10 @@
+#========[ IMPORTS ]========
 from menpo.transform.homogeneous.affine import DiscreteAffine
 from menpo.transform.homogeneous.similarity import Similarity
 import numpy as np
 import vtk
 
-#--------------------------
+#========[ CLASSES ]========
 
 class Translation(DiscreteAffine, Similarity):
     r"""

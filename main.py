@@ -1,5 +1,6 @@
 #========[ IMPORTS ]========
-from modules import distance, nricp, utils
+from modules import bvh, distance, nricp, utils
+
 import logging
 
 # Setting up so that in the logs the file name shows up
@@ -27,13 +28,13 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     garment = utils.Garment()
     smpl = utils.SMPLModel()
     
-    '''garment.load_obj(garment_file)
+    garment.load_obj(garment_file)
     if smpl_file[-3:] == "npz":
         smpl.load_npz(smpl_file)
     elif smpl_file[-3:] == "obj":
         smpl.load_obj(smpl_file)
     else:
-        raise Exception("Incompatible data type")''' # Does not work
+        raise Exception("Incompatible data type")
     
     utils.pretreat.pretreating(garment.vertices)
     #utils.plot_alignment_2(garment_vertices, smpl_vertices, ANGLE)
@@ -48,6 +49,10 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     #cham = ChamferDistance()
     #torch_garment = torch.Tensor([garment.vertices])
     #torch_smpl = torch.Tensor([smpl.vertices])
+    hello = bvh.bvh_3.example()
+    hello = bvh.bvh_4.example()
+    #result = bvh.apply_bvh(garment.faces, smpl.vertices)
+    #print(result)
     
     #utils.plot_alignment_2(aligned_garment, smpl_vertices, ANGLE)
 

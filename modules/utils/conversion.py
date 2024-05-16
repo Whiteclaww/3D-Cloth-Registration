@@ -1,10 +1,13 @@
+#========[ IMPORTS ]========
 from .trimesh import *
 from .vtk_additions import *
 
-import torch
 import logging
 import scipy.sparse as sp
+import torch
 from vtk.util.numpy_support import numpy_to_vtk     # Ignore the error
+
+#========[ FUNCTIONS ]========
 
 def trimesh_to_vtk(trimesh: TriMesh):
     r"""Return a `vtkPolyData` representation of a :map:`TriMesh` instance

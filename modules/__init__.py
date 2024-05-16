@@ -1,1 +1,1 @@
-from . import utils, nricp, distance, bvh
+from . import bvh, distance, nricp, utils

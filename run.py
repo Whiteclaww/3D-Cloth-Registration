@@ -10,7 +10,7 @@ tests = main_test.Test_Main()
 
 ## NRICP
 # Best
-#main.main("dataset/test_t1/00006/Top.obj", "dataset/smpl_highres_female.npz", "top_aligned_smpl_female.obj")
+main.main("dataset/test_t1/00006/Top.obj", "dataset/smpl_highres_female.npz", "top_aligned_smpl_female.obj")
 #main.main("dataset/test_t1/00001/Jumpsuit.obj", "dataset/smpl_highres_female.npz", "Jumpsuit_aligned_smpl_female.obj")
 
 # Decent

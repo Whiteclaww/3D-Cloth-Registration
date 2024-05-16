@@ -1,12 +1,9 @@
 #========[ IMPORTS ]========
-import sys
+from modules.utils.classes import SMPLModel, Garment
 
 from chamferdist import ChamferDistance
 import math
-import timeit
 from torch import Tensor
-
-from modules.utils.classes import SMPLModel, Garment
 
 #========[ CLASSES ]========
 
@@ -75,11 +72,8 @@ def dist_face(M:list, face:list):
     Returns:
         list: vector between M and the plan ABC
     """
-    start = timeit.timeit()
     A, B, C = face
     plan = Plan(A, B, C)
     n_MA = produit_scalaire(plan.n, vector(M, A))
     dist = abs(n_MA) / norm(plan.n)
-    end = timeit.timeit()
-    print(end - start)
     return dist

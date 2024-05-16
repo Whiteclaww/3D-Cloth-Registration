@@ -1,4 +1,8 @@
+#========[ IMPORTS ]========
 import numpy as np
+from modules.distance.chamfer import dist_face
+
+#========[ FUNCTIONS ]========
 
 class BoundingBox:
     def __init__(self, min_point, max_point):
@@ -16,18 +20,19 @@ class BVHNode:
     def __init__(self, faces, bounding_box):
         self.faces = faces
         self.bounding_box:BoundingBox = bounding_box
-        self.left:BVHNode = BVHNode(None, None)
-        self.right:BVHNode = BVHNode(None, None)
+        self.left = None
+        self.right = None
 
-def build_bvh(faces, depth = 0) -> BVHNode:
+def build_bvh(faces:list, depth = 0):
     if len(faces) == 0:
-        return BVHNode(None, None)
+        return None
     
     if len(faces) == 1:
         bounding_box = compute_bounding_box(faces)
         return BVHNode(faces, bounding_box)
 
     axis = depth % 3
+    
     faces.sort(key=lambda face: face_centroid(face)[axis])
     mid = len(faces) // 2
 
@@ -52,24 +57,29 @@ def compute_bounding_box(faces):
     max_point = np.max(vertices, axis=0)
     return BoundingBox(min_point, max_point)
 
-def face_centroid(face):
+def face_centroid(face) -> list:
     return np.mean(face, axis=0)
 
 def distance_point_to_face(face, point):
-    A, B, C = face
+    A, B, C, D = face  # Now it handles faces with 4 vertices
+    # Calculate the normal vector of the face
     normal = np.cross(B - A, C - A)
-    normal /= np.linalg.norm(normal)
+    normal = (normal / np.linalg.norm(normal))
     distance_to_plane = np.dot(point - A, normal)
     projected_point = point - distance_to_plane * normal
 
-    # Check if the projected point is inside the triangle
-    if is_point_in_triangle(projected_point, A, B, C):
+    # Check if the projected point is inside the face
+    if is_point_in_quad(projected_point, A, B, C, D):
         return np.linalg.norm(point - projected_point)
     else:
-        # If the point is not inside the triangle, compute distance to the triangle edges
+        # If the point is not inside the face, compute distance to the face edges
         return min(distance_point_to_segment(point, A, B),
                    distance_point_to_segment(point, B, C),
-                   distance_point_to_segment(point, C, A))
+                   distance_point_to_segment(point, C, D),
+                   distance_point_to_segment(point, D, A))
+
+def is_point_in_quad(p, A, B, C, D):
+    return is_point_in_triangle(p, A, B, C) or is_point_in_triangle(p, A, C, D)
 
 def is_point_in_triangle(p, A, B, C):
     v0 = C - A
@@ -116,25 +126,33 @@ def find_closest_face(bvh, point):
 
     return search_bvh(bvh, point, None, float('inf'))
 
-# Exemple d'utilisation
-# Définir les faces du maillage C comme des tableaux numpy de sommets
-faces_C = [
-    np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]]),
-    np.array([[1, 0, 0], [1, 1, 0], [0, 1, 0]]),
-    # Ajouter d'autres faces
-]
+def example():
+    # Exemple d'utilisation
+    # Définir les faces du maillage C comme des tableaux numpy de sommets
+    faces_C = [
+        np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]]),
+        np.array([[0, 0, 0], [1, 0, 0], [0, -1, 0], [1, -1, 0]]),
+        # Ajouter d'autres faces
+    ]
 
-# Construire le BVH
-bvh_root = build_bvh(faces_C)
+    # Construire le BVH
+    bvh_root = build_bvh(faces_C)
 
-# Définir les sommets du maillage B comme des points numpy
-vertices_B = [
-    np.array([0.1, 0.1, 0.1]),
-    np.array([0.5, 0.5, 0.5]),
-    # Ajouter d'autres sommets
-]
+    # Définir les sommets du maillage B comme des points numpy
+    vertices_B = [
+        np.array([0.1, 0.1, 0.1]),
+        np.array([0.5, 0.5, 0.5]),
+        # Ajouter d'autres sommets
+    ]
 
-# Trouver les faces les plus proches pour chaque sommet de B
-for vertex in vertices_B:
-    closest_face = find_closest_face(bvh_root, vertex)
-    print(f"Le sommet {vertex} a la face la plus proche {closest_face}")
+    # Trouver les faces les plus proches pour chaque sommet de B
+    result = []
+    for vertex in vertices_B:
+        closest_face = find_closest_face(bvh_root, vertex)
+        result.append([vertex, closest_face])
+        print(f"Le sommet {vertex} a la face la plus proche\n{closest_face}")
+    
+    return result
+
+def bvh():
+    

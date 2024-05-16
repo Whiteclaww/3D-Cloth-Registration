@@ -1,7 +1,11 @@
-from ..utils.conversion import toarray_without_loss
+#========[ IMPORTS ]========
+from modules.utils.conversion import toarray_without_loss
+
 import logging
 import scipy.sparse as sp
 from scipy.sparse.linalg import lsmr
+
+#========[ FUNCTIONS ]========
 
 def spsolve(A, B):
     r"""

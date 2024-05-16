@@ -6,8 +6,8 @@ from modules.nricp import nricp
 def test_non_rigid_icp():
     pass
 
-def test_non_rigid_icp_generator_handler():
+def test_non_rigid_icp_generator():
     pass
 
-def test_non_rigid_icp_generator():
+def test_non_rigid_icp_generator_handler():
     pass

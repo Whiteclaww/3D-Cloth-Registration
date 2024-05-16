@@ -6,8 +6,8 @@ from modules.utils import pretreat
 def test_fillYZ():
     pass
 
-def test_replace():
+def test_pretreating():
     pass
 
-def test_pretreating():
+def test_replace():
     pass
