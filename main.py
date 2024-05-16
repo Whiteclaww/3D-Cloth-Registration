@@ -25,18 +25,8 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     
     # Load garment and SMPL body
     logging.info("Attempting to load OBJ and SMPL")
-    garment = utils.Object()
-    smpl = utils.Object()
-    
-    garment.load_obj(garment_file)
-    if smpl_file[-3:] == "npz":
-        smpl.load_npz(smpl_file)
-    elif smpl_file[-3:] == "obj":
-        smpl.load_obj(smpl_file)
-    else:
-        raise Exception("Incompatible data type")
-    
-    hello = garment.link_vertices_to_faces()
+    garment = utils.Object(garment_file)
+    smpl = utils.Object(smpl_file)
     
     utils.pretreat.pretreating(garment.vertices)
     #utils.plot_alignment_2(garment_vertices, smpl_vertices, ANGLE)
@@ -48,10 +38,9 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     
     #result = neighbours.nearest_neighbours_generator(garment.vertices, smpl.vertices)
     
-    #cham = ChamferDistance()
+    #cham = distance.ChamferDistance()
     #torch_garment = torch.Tensor([garment.vertices])
     #torch_smpl = torch.Tensor([smpl.vertices])
-    hello = bvh.bvh_3.example()
     hello = bvh.bvh_4.bvh(garment.faces, smpl.vertices)
     #result = bvh.apply_bvh(garment.faces, smpl.vertices)
     #print(result)

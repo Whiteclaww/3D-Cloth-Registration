@@ -4,23 +4,28 @@ import numpy as np
 #========[ CLASSES ]========
 
 class Object():
-    def __init__(self, vertices = np.empty(0), faces = np.empty(0)):
+    def __init__(self, filename:str = ""):
         """
-        SMPL model.
+        Either the SMPL or Garment
 
-        Parameter:
-        ---------
-        model_path: Path to the SMPL model parameters, pre-processed by
-        `preprocess.py`.
-
+        Args:
+            filename (str): Name of the object's file.
         """
-        self.faces = faces
-        self.vertices = vertices
+        self.faces = []
+        self.vertices = []
+        
+        if filename != "":
+            if filename[-3:] == "npz":
+                self.load_npz(filename)
+            elif filename[-3:] == "obj":
+                self.load_obj(filename)
+            else:
+                raise Exception("Incompatible data type")
     
     def load_npz(self, model_path):
         params = np.load(model_path)
-        self.vertices = params['v_template']
-        self.faces = params['f']
+        self.faces = params['f'].tolist()
+        self.vertices = params['v_template'].tolist()
     
     def load_obj(self, filename):
         vertices, face_indices = [], []
@@ -29,16 +34,28 @@ class Object():
         for line in file:
             # 3D vertex
             if line.startswith('v '):
-                coord = [float(n) for n in line.replace('v ','').split(' ')]
-                vertices += [coord]
+                count = 0
+                coord = np.empty(3, np.float32)
+                for n in line.replace('v ','').split(' '):
+                    coord[count] = np.float32(n)
+                    count += 1
+                vertices.append(coord)
             # Face
             elif line.startswith('f '):
-                idx = [n.split('/') for n in line.replace('f ','').split(' ')]
-                f = [int(float(n[0])) - 1 for n in idx]
-                face_indices += [f]
-
-        self.vertices = np.array(vertices, np.float32)
-        self.faces = np.array(face_indices, np.float32)
+                count = 0
+                face = []
+                for n in line.replace('f ','').split(' '):
+                    face.append(np.array(n.split('/'), np.float32))
+                    count += 1
+                face = np.array(face, np.float32)
+                count = 0
+                f = np.empty(len(face), int)
+                for n in face:
+                    f[count] = int(n[0]) - 1
+                    count += 1
+                face_indices.append(f)
+        self.faces = face_indices
+        self.vertices=vertices
     
     def save_obj(self, save_file_name):
         with open(save_file_name, 'w') as file:
