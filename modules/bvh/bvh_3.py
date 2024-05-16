@@ -143,3 +143,5 @@ def example():
     for vertex in vertices_B:
         closest_face = find_closest_face(bvh_root, vertex)
         print(f"Le sommet {vertex} a la face la plus proche {closest_face}")
+
+example()

@@ -25,8 +25,8 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     
     # Load garment and SMPL body
     logging.info("Attempting to load OBJ and SMPL")
-    garment = utils.Garment()
-    smpl = utils.SMPLModel()
+    garment = utils.Object()
+    smpl = utils.Object()
     
     garment.load_obj(garment_file)
     if smpl_file[-3:] == "npz":
@@ -35,6 +35,8 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
         smpl.load_obj(smpl_file)
     else:
         raise Exception("Incompatible data type")
+    
+    hello = garment.link_vertices_to_faces()
     
     utils.pretreat.pretreating(garment.vertices)
     #utils.plot_alignment_2(garment_vertices, smpl_vertices, ANGLE)
@@ -50,7 +52,7 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     #torch_garment = torch.Tensor([garment.vertices])
     #torch_smpl = torch.Tensor([smpl.vertices])
     hello = bvh.bvh_3.example()
-    hello = bvh.bvh_4.example()
+    hello = bvh.bvh_4.bvh(garment.faces, smpl.vertices)
     #result = bvh.apply_bvh(garment.faces, smpl.vertices)
     #print(result)
     

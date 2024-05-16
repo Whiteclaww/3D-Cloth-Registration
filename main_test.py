@@ -47,8 +47,7 @@ class Test_Main():
         test_chamfer.test_vector()
     
     def test_classes(self):
-        test_classes.test_Garment()
-        test_classes.test_SMPLModel()
+        test_classes.test_Object()
         test_classes.test_Linked()
         test_classes.test_Linked_Node()
     

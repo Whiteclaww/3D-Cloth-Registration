@@ -154,5 +154,15 @@ def example():
     
     return result
 
-def bvh():
+def bvh(faces:list[np.ndarray], vertices:list[np.ndarray]):
+    # Construire le BVH
+    bvh_root = build_bvh(faces)
+
+    # Trouver les faces les plus proches pour chaque sommet de B
+    result = []
+    for vertex in vertices:
+        closest_face = find_closest_face(bvh_root, vertex)
+        result.append([vertex, closest_face])
+        print(f"Le sommet {vertex} a la face la plus proche\n{closest_face}")
     
+    return result
