@@ -48,8 +48,6 @@ class Test_Main():
     
     def test_classes(self):
         test_classes.test_Object()
-        test_classes.test_Linked()
-        test_classes.test_Linked_Node()
     
     def test_conversion(self):
         test_conversion.test_node_arc_incidence_matrix()

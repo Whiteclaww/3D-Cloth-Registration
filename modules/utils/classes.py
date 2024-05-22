@@ -1,4 +1,5 @@
 #========[ IMPORTS ]========
+import logging
 import numpy as np
 
 #========[ CLASSES ]========
@@ -15,12 +16,12 @@ class Object():
         self.vertices = []
         
         if filename != "":
-            if filename[-3:] == "npz":
+            if filename[-4:] == ".npz":
                 self.load_npz(filename)
-            elif filename[-3:] == "obj":
+            elif filename[-4:] == ".obj":
                 self.load_obj(filename)
             else:
-                raise Exception("Incompatible data type")
+                logging.error(' Object_Initialisation: Wrong file type, has to be "", "[...].npz" or "[...].obj"')
     
     def load_npz(self, model_path):
         params = np.load(model_path)
@@ -28,9 +29,10 @@ class Object():
         self.vertices = params['v_template'].tolist()
     
     def load_obj(self, filename):
-        vertices, face_indices = [], []
         with open(filename, 'r') as f:
             file = f.readlines()
+            
+        vertices, face_indices = [], []
         for line in file:
             # 3D vertex
             if line.startswith('v '):
@@ -48,26 +50,31 @@ class Object():
                     face.append(np.array(n.split('/'), np.float32))
                     count += 1
                 face = np.array(face, np.float32)
-                count = 0
-                f = np.empty(len(face), int)
+                #count = 0
+                f = []#np.empty(len(face), int)
                 for n in face:
-                    f[count] = int(n[0]) - 1
-                    count += 1
+                    f.append(int(n[0]) - 1)#[count] = int(n[0]) - 1
+                    #count += 1
                 face_indices.append(f)
         self.faces = face_indices
-        self.vertices=vertices
+        self.vertices = vertices
     
     def save_obj(self, save_file_name):
-        with open(save_file_name, 'w') as file:
-            # Vertices
-            for vertex in self.vertices:
-                line = 'v ' + ' '.join([str(_) for _ in vertex]) + '\n'
-                file.write(line)
-            # 3D Faces
-            faces = [[str(i + 1) for i in f] for f in self.faces]		
-            for f in faces:
-                line = 'f ' + ' '.join(f) + '\n'
-                file.write(line)
+        if save_file_name != "":
+            if save_file_name[-4:] != ".obj":
+                save_file_name += ".obj"
+            with open(save_file_name, 'w') as file:
+                # Vertices
+                for vertex in self.vertices:
+                    line = 'v ' + ' '.join([str(_) for _ in vertex]) + '\n'
+                    file.write(line)
+                # 3D Faces
+                faces = [[str(i + 1) for i in f] for f in self.faces]		
+                for f in faces:
+                    line = 'f ' + ' '.join(f) + '\n'
+                    file.write(line)
+            return 0 # Saved successfully
+        return 1 # Saved unsuccesssfully
     
     def link_vertices_to_faces(self):
         full_faces = []

@@ -25,10 +25,10 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     
     # Load garment and SMPL body
     logging.info("Attempting to load OBJ and SMPL")
-    garment = utils.Object(garment_file)
-    smpl = utils.Object(smpl_file)
+    garment = utils.classes.Object(garment_file)
+    smpl = utils.classes.Object(smpl_file)
     
-    utils.pretreat.pretreating(garment.vertices)
+    #utils.pretreat.pretreating(garment.vertices)
     #utils.plot_alignment_2(garment_vertices, smpl_vertices, ANGLE)
 
     # Non-rigid ICP
@@ -41,7 +41,7 @@ def main(garment_file:str, smpl_file:str, aligned_garment_file:str):
     #cham = distance.ChamferDistance()
     #torch_garment = torch.Tensor([garment.vertices])
     #torch_smpl = torch.Tensor([smpl.vertices])
-    hello = bvh.bvh_4.bvh(garment.faces, smpl.vertices)
+    #hello = bvh.bvh_4.bvh(garment.faces, smpl.vertices)
     #result = bvh.apply_bvh(garment.faces, smpl.vertices)
     #print(result)
     
