@@ -3,6 +3,7 @@ from .test_bvh_4 import *
 from .test_chamfer import *
 from .test_classes import *
 from .test_conversion import *
+from .test_kao_dist import *
 from .test_neighbours import *
 from .test_nricp import *
 from .test_plot import *

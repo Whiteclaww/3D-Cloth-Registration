@@ -154,7 +154,10 @@ def example():
     
     return result
 
-def bvh(faces:list[np.ndarray], vertices:list[np.ndarray]):
+def bvh(faces:list, vertices:list):
+    """
+    Careful: takes in both list[np.ndarray]
+    """
     # Construire le BVH
     if faces == [] or vertices == []:
         raise Exception("BVH === Empty faces or vertices")

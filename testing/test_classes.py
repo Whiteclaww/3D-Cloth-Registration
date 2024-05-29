@@ -48,7 +48,7 @@ def test_init() -> None:
 
 def test_load_npz() -> None:
     false_npz = "a.npz"
-    smpl_fem = "3D-Cloth-Registration/test_dataset/smpl_highres_female.npz"
+    smpl_fem = "test_dataset/smpl_highres_female.npz"
     
     #catch_exception(text = false_npz, condition = lambda: classes.Object(false_npz))
     
@@ -60,7 +60,7 @@ def test_load_npz() -> None:
     
 def test_load_obj() -> classes.Object:
     false_obj = "a.obj"
-    garment = "3D-Cloth-Registration/test_dataset/00006/Top.obj"
+    garment = "test_dataset/00006/Top.obj"
     
     #catch_exception(text = false_obj, condition=lambda: classes.Object(false_obj))
     
