@@ -59,7 +59,7 @@ class Test_Main():
         test_conversion.test_trimesh_to_vtk()
     
     def test_kaolin_distance(self):
-        test_kao_dist.test_kaolin_point_to_mesh()
+        test_kao_dist.test_kaolin_point_to_mesh_2()
 
     def test_neighbours(self):
         test_neighbours.test_nearest_neighbours_using_sklearn()
