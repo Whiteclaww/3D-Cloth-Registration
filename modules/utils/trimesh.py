@@ -1,6 +1,9 @@
+#========[ IMPORTS ]========
 from menpo.shape import PointCloud
 import numpy as np
 from warnings import warn
+
+#========[ FUNCTIONS ]========
 
 def _normalize(v:np.ndarray):
     magnitude = np.sqrt((v ** 2).sum(axis=1, keepdims=True))

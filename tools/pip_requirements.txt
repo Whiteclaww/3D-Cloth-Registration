@@ -1,0 +1,3 @@
+pygltflib
+pybind11
+usd-core==23.5

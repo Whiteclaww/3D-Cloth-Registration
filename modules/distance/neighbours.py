@@ -1,8 +1,9 @@
-import numpy as np
+#========[ IMPORTS ]========
 from math import dist
+import numpy as np
 from sklearn.neighbors import NearestNeighbors
-import point_cloud_utils as pcu
 
+#========[ FUNCTIONS ]========
 
 def get_nearest(vertex, possible_values:np.ndarray):
     nearest_index = -1
@@ -145,13 +146,13 @@ def chamfer_distance(x, y, metric='l2', direction='bi'):
             sum_{x_i \in x}{\min_{y_j \in y}{||x_i-y_j||**2}} + sum_{y_j \in y}{\min_{x_i \in x}{||x_i-y_j||**2}}
     """
 
-def chamferdist(source, target):
+'''def chamferdist(source, target):
     #y_nn = NearestNeighbors(n_neighbors=1, leaf_size=1, algorithm='kd_tree', metric=metric).fit(y)
     #min_x_to_y = y_nn.kneighbors(x)[0]
     #chamfer_dist = np.mean(min_x_to_y)
     #return chamfer_dist
     
-    
+    import point_cloud_utils
     
     cd = pcu.chamfer_distance(source, target)
-    return cd
+    return cd'''
