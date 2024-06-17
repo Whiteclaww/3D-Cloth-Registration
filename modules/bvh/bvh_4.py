@@ -1,6 +1,6 @@
 #========[ IMPORTS ]========
 import numpy as np
-from modules.distance.chamfer import dist_face
+from modules.distance.plan import dist_face
 
 #========[ FUNCTIONS ]========
 

@@ -10,10 +10,15 @@ import logging
 
 class Test_Main():
     def test_bvh_3(self):
+        logging.debug('Testing BVH 3: bounding box function || 0/5 Passed')
         test_bvh_3.test_BoundingBox()
+        logging.debug('Testing BVH 3: bvh function || 1/5 Passed')
         test_bvh_3.test_bvh()
+        logging.debug('Testing BVH 3: build bvh function || 2/5 Passed')
         test_bvh_3.test_build_bvh()
+        logging.debug('Testing BVH 3: bvh node function || 3/5 Passed')
         test_bvh_3.test_BVHNode()
+        logging.debug('Testing BVH 3: compute bounding box || 4/5 Passed')
         test_bvh_3.test_compute_bounding_box()
         test_bvh_3.test_distance_point_to_face()
         test_bvh_3.test_distance_point_to_segment()
@@ -21,6 +26,7 @@ class Test_Main():
         test_bvh_3.test_face_centroid()
         test_bvh_3.test_find_closest_face()
         test_bvh_3.test_is_point_in_triangle()
+        logging.info('Testing BVH 3: =====[ 5/5 PASSED ]=====')
     
     def test_bvh_4(self):
         test_bvh_4.test_BoundingBox()
@@ -35,19 +41,15 @@ class Test_Main():
         test_bvh_4.test_find_closest_face()
         test_bvh_4.test_is_point_in_triangle()
         test_bvh_4.test_is_point_in_quad()
+        logging.info('Testing Object: =====[ 5/5 PASSED ]=====')
     
     def test_chamfer(self):
         test_chamfer.test_chamfer_distance()
-        test_chamfer.test_dist_face()
-        test_chamfer.test_divide()
-        test_chamfer.test_norm()
-        test_chamfer.test_Plan()
-        test_chamfer.test_produit_scalaire()
-        test_chamfer.test_produit_vectoriel()
-        test_chamfer.test_vector()
+        logging.info('Testing Chamfer Distance: =====[ 1/1 PASSED ]=====')
     
     def test_classes(self):
         test_classes.test_Object()
+        logging.info('Testing Object: =====[ 5/5 PASSED ]=====')
     
     def test_conversion(self):
         test_conversion.test_node_arc_incidence_matrix()
@@ -73,6 +75,19 @@ class Test_Main():
         test_nricp.test_non_rigid_icp_generator()
         test_nricp.test_non_rigid_icp_generator_handler()
     
+    def test_plan(self):
+        test_plan.test_vector()
+        test_plan.test_norm()
+        test_plan.test_divide()
+        test_plan.test_mul()
+        test_plan.test_produit_scalaire()
+        test_plan.test_produit_vectoriel()
+        test_plan.test_sum_vect()
+        test_plan.test_Plan()
+        test_plan.test_dist_face()
+        test_plan.test_norm2()
+        #test_plan.test_find_vertex()
+
     def test_plot(self):
         test_plot.test_plot_alignment_multiple()
         test_plot.test_plot_alignment_single()

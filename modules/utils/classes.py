@@ -29,19 +29,17 @@ class Object():
         self.vertices = params['v_template'].tolist()
     
     def load_obj(self, filename):
-        with open(filename, 'r') as f:
-            file = f.readlines()
+        with open(filename, 'r') as face_indices:
+            file = face_indices.readlines()
             
         vertices, face_indices = [], []
         for line in file:
             # 3D vertex
             if line.startswith('v '):
-                count = 0
-                coord = np.empty(3, np.float32)
+                vertices_3 = []
                 for n in line.replace('v ','').split(' '):
-                    coord[count] = np.float32(n)
-                    count += 1
-                vertices.append(coord)
+                    vertices_3.append(np.float32(n))
+                vertices.append(vertices_3)
             # Face
             elif line.startswith('f '):
                 count = 0
@@ -49,13 +47,10 @@ class Object():
                 for n in line.replace('f ','').split(' '):
                     face.append(np.array(n.split('/'), np.float32))
                     count += 1
-                face = np.array(face, np.float32)
-                #count = 0
-                f = []#np.empty(len(face), int)
+                faces = []
                 for n in face:
-                    f.append(int(n[0]) - 1)#[count] = int(n[0]) - 1
-                    #count += 1
-                face_indices.append(f)
+                    faces.append(int(n[0]) - 1)
+                face_indices.append(faces)
         self.faces = face_indices
         self.vertices = vertices
     
@@ -85,3 +80,16 @@ class Object():
                 face_coordinates.append(self.vertices[index])
             full_faces.append(face_coordinates)
         return full_faces
+    
+    def convert_to_triangular(self):
+        triangular_mesh = []
+        for face in self.faces:
+            if len(face) == 4:  # Si la face est carrée
+                # Diviser la face carrée en deux triangles
+                triangular_mesh.append([face[0], face[1], face[2]])
+                triangular_mesh.append([face[0], face[2], face[3]])
+            elif len(face) == 3:  # Si la face est déjà un triangle
+                triangular_mesh.append(face)
+            else:
+                logging.error("Attention : La face n'est ni un carré ni un triangle.")
+        self.trifaces = triangular_mesh

@@ -28,7 +28,6 @@ def test_Object():
     test_save_obj(obj)
     logging.debug('Testing Object: vertices to face function || 4/5 Passed')
     test_vertices_to_face(obj)
-    logging.debug('Testing Object: =====[ 5/5 PASSED ]=====')
 
 # Functions within Object
 

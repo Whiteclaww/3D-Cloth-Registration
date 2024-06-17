@@ -19,8 +19,16 @@ def test_kaolin_point_to_mesh_2():
             [4, 0, 4]]
     face_indices = [[0, 1, 2], [3, 4, 5]]
 
+    face_vertices = kao_dist.index_vertices_by_faces(kao_dist.torch.tensor([mesh], device='cuda'), kao_dist.torch.tensor(face_indices, device='cuda'))
+
     dist, index, dist_type = kao_dist.kaolin_point_to_mesh(cloud, mesh, face_indices)
 
-    assert dist.tolist() == [[0., 1.]]
-    assert index.tolist() == [[0, 1]]
-    assert dist_type.tolist() == [[5, 4]]
+    print('pointcloud: ', cloud)
+    print('face_vertices: ', face_vertices.tolist())
+    print('\ndist: ',dist)
+    print('index: ', index)
+    print('dist_type: ', dist_type)
+
+    assert dist == [[0., 1.]]
+    assert index == [[0, 1]]
+    assert dist_type == [[5, 4]]

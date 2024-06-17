@@ -6,6 +6,7 @@ from .test_conversion import *
 from .test_kao_dist import *
 from .test_neighbours import *
 from .test_nricp import *
+from .test_plan import *
 from .test_plot import *
 from .test_pretreat import *
 from .test_rotation_translate import *
