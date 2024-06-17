@@ -1,7 +1,5 @@
 .conda*
 .vscode*
 __pycache__*
-.obj
 .ply
-.npz
-tools/kaolin*
+.html
